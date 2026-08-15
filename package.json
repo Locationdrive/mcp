@@ -1,6 +1,6 @@
 {
   "name": "@locationdrive/mcp",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Official MCP server for the Location Drive API - global POI data, graded building polygons, EV/fuel/menu/hotel data packs.",
   "license": "MIT",
   "type": "module",
@@ -32,10 +32,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ahmedmaher1/locationdrive-mcp.git"
+    "url": "git+https://github.com/locationdrive/mcp.git"
   },
   "bugs": {
-    "url": "https://github.com/ahmedmaher1/locationdrive-mcp/issues"
+    "url": "https://github.com/locationdrive/mcp/issues"
   },
   "keywords": [
     "mcp",
