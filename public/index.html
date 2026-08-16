@@ -4,35 +4,134 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Location Drive MCP Server</title>
+<meta name="description" content="Official MCP server for the Location Drive API — connect Claude, Cursor, or any MCP client to 350M+ POIs, graded building polygons, and brand intelligence.">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M24 6 L46 22 L24 38 L2 22 Z' fill='%230E7C86'/%3E%3Ccircle cx='24' cy='22' r='6.5' fill='%23FFFFFF'/%3E%3C/svg%3E">
 <style>
-  body{margin:0;font-family:'DM Sans',Helvetica,Arial,sans-serif;background:#0F172A;color:#E2E8F0;display:grid;place-items:center;min-height:100vh}
-  .card{max-width:640px;padding:48px 32px;text-align:center}
-  svg{margin-bottom:20px}
-  h1{font-size:28px;margin:0 0 8px;color:#fff;letter-spacing:-.035em}
-  p{color:#94A3B8;line-height:1.6;margin:0 0 20px}
-  code{display:block;background:#1E293B;border:1px solid #334155;border-radius:10px;padding:14px 18px;font-size:14px;color:#2DE1E8;margin:0 0 12px;overflow-x:auto;text-align:left}
-  a{color:#2DE1E8;text-decoration:none}
+  :root{--ink:#0F172A;--panel:#1E293B;--line:#334155;--text:#E2E8F0;--muted:#94A3B8;--faint:#64748B;--signal:#2DE1E8;--deep:#0E7C86}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;background:var(--ink);color:var(--text);line-height:1.6}
+  .wrap{max-width:860px;margin:0 auto;padding:56px 24px 72px}
+  header{text-align:center;margin-bottom:48px}
+  header svg{margin-bottom:18px}
+  h1{font-size:30px;margin:0 0 10px;color:#fff;letter-spacing:-.035em}
+  .tagline{color:var(--muted);max-width:620px;margin:0 auto 24px}
+  .pillrow{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  .pill{font-size:13px;border:1px solid var(--line);border-radius:999px;padding:5px 14px;color:var(--muted)}
+  .pill b{color:var(--signal);font-weight:600}
+  h2{font-size:15px;text-transform:uppercase;letter-spacing:.12em;color:var(--faint);margin:44px 0 14px;border-bottom:1px solid var(--line);padding-bottom:8px}
+  h3{font-size:15px;color:#fff;margin:22px 0 8px}
+  p{color:var(--muted);margin:0 0 14px}
+  .code{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:10px;margin:0 0 14px;overflow:hidden}
+  .code pre{margin:0;padding:14px 52px 14px 18px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;color:var(--signal);overflow-x:auto;line-height:1.55}
+  .code.plain pre{color:var(--text)}
+  .copy{position:absolute;top:8px;right:8px;background:transparent;border:1px solid var(--line);border-radius:7px;color:var(--faint);font-size:11px;padding:4px 9px;cursor:pointer;font-family:inherit}
+  .copy:hover{color:var(--signal);border-color:var(--deep)}
+  .tools{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
+  @media(max-width:640px){.tools{grid-template-columns:1fr}}
+  .tool{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+  .tool code{color:var(--signal);font-size:13px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  .tool p{font-size:13px;margin:6px 0 0;color:var(--muted)}
+  .badge{float:right;font-size:10px;font-weight:700;letter-spacing:.05em;border-radius:999px;padding:2px 8px;background:rgba(45,225,232,.12);color:var(--signal)}
+  .badge.starter{background:rgba(251,146,60,.14);color:#FDBA74}
+  .prompts li{color:var(--muted);font-size:14px;margin-bottom:6px}
+  .note{background:rgba(14,124,134,.12);border:1px solid var(--deep);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--muted)}
+  .note b{color:var(--text)}
+  a{color:var(--signal);text-decoration:none}
   a:hover{text-decoration:underline}
-  .links{font-size:14px;color:#64748B}
+  footer{margin-top:52px;padding-top:20px;border-top:1px solid var(--line);text-align:center;font-size:14px;color:var(--faint)}
 </style>
 </head>
 <body>
-<div class="card">
-  <svg viewBox="0 0 48 48" width="56" height="56" role="img" aria-label="Location Drive">
-    <path d="M24 4 L44 14.5 L24 25 L4 14.5 Z" fill="#2DE1E8"/>
-    <circle cx="24" cy="14.5" r="4.5" fill="#0F172A"/>
-    <path d="M5 24 L24 33.5 L43 24 M5 33 L24 42.5 L43 33" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linejoin="miter"/>
-  </svg>
-  <h1>Location Drive MCP Server</h1>
-  <p>Connect any MCP-compatible AI client (Claude, Cursor, and others) to the global Location Drive POI database — search, building polygons, brand intelligence, and premium data packs.</p>
-  <code>Endpoint&nbsp;&nbsp;https://mcp.locationdrive.com/mcp</code>
-  <code>Header&nbsp;&nbsp;&nbsp;&nbsp;Authorization: Bearer ld_live_YOUR_KEY</code>
-  <p class="links">
+<div class="wrap">
+
+  <header>
+    <svg viewBox="0 0 48 48" width="56" height="56" role="img" aria-label="Location Drive">
+      <path d="M24 4 L44 14.5 L24 25 L4 14.5 Z" fill="#2DE1E8"/>
+      <circle cx="24" cy="14.5" r="4.5" fill="#0F172A"/>
+      <path d="M5 24 L24 33.5 L43 24 M5 33 L24 42.5 L43 33" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linejoin="miter"/>
+    </svg>
+    <h1>Location Drive MCP Server</h1>
+    <p class="tagline">Connect Claude, Cursor, or any MCP-compatible AI client to the global Location Drive POI database — 350M+ places, graded building polygons, brand intelligence, and premium data packs.</p>
+    <div class="pillrow">
+      <span class="pill">Endpoint <b>mcp.locationdrive.com/mcp</b></span>
+      <span class="pill">npm <b>@locationdrive/mcp</b></span>
+      <span class="pill">8 read-only tools</span>
+    </div>
+  </header>
+
+  <h2>Hosted — no install</h2>
+  <p>Streamable HTTP with your own API key as a Bearer header. Plan gating, quotas, and usage metering apply exactly as with direct API calls. <a href="https://locationdrive.com">Get a free key →</a></p>
+
+  <h3>Claude Code</h3>
+  <div class="code"><pre>claude mcp add --transport http locationdrive https://mcp.locationdrive.com/mcp \
+  --header "Authorization: Bearer ld_live_YOUR_KEY"</pre><button class="copy">Copy</button></div>
+
+  <h3>Cursor — <span style="font-weight:400;color:var(--faint)">.cursor/mcp.json</span></h3>
+  <div class="code"><pre>{
+  "mcpServers": {
+    "locationdrive": {
+      "url": "https://mcp.locationdrive.com/mcp",
+      "headers": { "Authorization": "Bearer ld_live_YOUR_KEY" }
+    }
+  }
+}</pre><button class="copy">Copy</button></div>
+
+  <h2>Local — runs on your machine</h2>
+  <p>Requires Node 18+. Same tools, same key, over stdio.</p>
+
+  <h3>Claude Desktop — <span style="font-weight:400;color:var(--faint)">claude_desktop_config.json</span></h3>
+  <div class="code"><pre>{
+  "mcpServers": {
+    "locationdrive": {
+      "command": "npx",
+      "args": ["-y", "@locationdrive/mcp"],
+      "env": { "LOCATIONDRIVE_API_KEY": "ld_live_YOUR_KEY" }
+    }
+  }
+}</pre><button class="copy">Copy</button></div>
+
+  <h3>Claude Code</h3>
+  <div class="code"><pre>claude mcp add locationdrive -e LOCATIONDRIVE_API_KEY=ld_live_YOUR_KEY \
+  -- npx -y @locationdrive/mcp</pre><button class="copy">Copy</button></div>
+
+  <h2>Tools</h2>
+  <div class="tools">
+    <div class="tool"><span class="badge">FREE+</span><code>search_places</code><p>Search the global POI database by name or keyword.</p></div>
+    <div class="tool"><span class="badge">FREE+</span><code>find_nearby</code><p>Distance-sorted places around a coordinate.</p></div>
+    <div class="tool"><span class="badge">FREE+</span><code>get_place_details</code><p>Full record by ID; premium fields (EV, fuel, menus, hotels) on eligible plans.</p></div>
+    <div class="tool"><span class="badge">FREE+</span><code>get_place_context</code><p>LLM-ready summary + structured record for one place.</p></div>
+    <div class="tool"><span class="badge starter">STARTER+</span><code>get_building_polygon</code><p>GeoJSON footprint with A–E accuracy grade and area.</p></div>
+    <div class="tool"><span class="badge starter">STARTER+</span><code>find_building_at_point</code><p>Reverse lookup — which building contains this coordinate.</p></div>
+    <div class="tool"><span class="badge">FREE+</span><code>brand_footprint</code><p>Store counts by country, open-now, coverage, average rating.</p></div>
+    <div class="tool"><span class="badge">FREE+</span><code>data_coverage</code><p>Per-country POI counts and polygon coverage stats.</p></div>
+  </div>
+
+  <h2>Try asking</h2>
+  <ul class="prompts">
+    <li>“How many Starbucks locations are in the dataset, and in which countries?”</li>
+    <li>“What restaurants are within 500 m of 40.7074, −74.0131?”</li>
+    <li>“Get the building footprint for this place and tell me its accuracy grade.”</li>
+    <li>“Which building is at 33.7144, −118.0058, and what businesses are inside?”</li>
+  </ul>
+
+  <div class="note"><b>Test without quota:</b> <code style="color:var(--signal)">ld_test_</code> keys return synthetic data and never count against your plan — ideal for trying the integration before going live.</div>
+
+  <footer>
     <a href="https://github.com/locationdrive/mcp">GitHub</a> &nbsp;·&nbsp;
+    <a href="https://www.npmjs.com/package/@locationdrive/mcp">npm</a> &nbsp;·&nbsp;
     <a href="https://locationdrive.com/docs">API docs</a> &nbsp;·&nbsp;
     <a href="https://locationdrive.com">Get an API key</a>
-  </p>
+  </footer>
+
 </div>
+<script>
+  document.querySelectorAll('.copy').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      navigator.clipboard.writeText(btn.parentElement.querySelector('pre').textContent).then(function(){
+        btn.textContent = 'Copied'; setTimeout(function(){ btn.textContent = 'Copy'; }, 1500);
+      });
+    });
+  });
+</script>
 </body>
 </html>

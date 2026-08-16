@@ -49,11 +49,31 @@ claude mcp add locationdrive -e LOCATIONDRIVE_API_KEY=ld_live_YOUR_KEY -- npx -y
 ## Setup — Remote (hosted)
 
 The same server runs hosted at `https://mcp.locationdrive.com/mcp`
-(Streamable HTTP). Configure your client with that URL and header:
+(Streamable HTTP) — no install needed. Authenticate with your key as a
+Bearer header.
 
+**Claude Code:**
+
+```bash
+claude mcp add --transport http locationdrive https://mcp.locationdrive.com/mcp \
+  --header "Authorization: Bearer ld_live_YOUR_KEY"
 ```
-Authorization: Bearer ld_live_YOUR_KEY
+
+**Cursor** — add to `.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "locationdrive": {
+      "url": "https://mcp.locationdrive.com/mcp",
+      "headers": { "Authorization": "Bearer ld_live_YOUR_KEY" }
+    }
+  }
+}
 ```
+
+**Other clients:** URL `https://mcp.locationdrive.com/mcp` with header
+`Authorization: Bearer ld_live_YOUR_KEY`.
 
 ## Try it
 
