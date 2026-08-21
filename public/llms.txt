@@ -1,0 +1,125 @@
+# Location Drive MCP Server
+
+> The official Model Context Protocol (MCP) server for Location Drive, the global point-of-interest data platform (350M+ verified places in 250+ countries and territories, 120M+ building polygons graded A–E, 80+ structured fields, 5M daily delta updates). It gives Claude, ChatGPT, Cursor, and any MCP-capable client 8 read-only tools for place search, proximity, building footprints, brand intelligence, and LLM-ready place context — hosted at https://mcp.locationdrive.com/mcp or run locally via `npx -y @locationdrive/mcp`.
+
+The server is named `locationdrive` and is read-only by design. Both modes use
+the customer's own Location Drive API key, so plan gating, quotas, and usage
+metering apply exactly as for direct REST calls — the server adds no auth,
+caching, or rate limiting of its own; `api.locationdrive.com` is the
+enforcement point. Source: https://github.com/locationdrive/mcp (TypeScript,
+MIT). The full platform summary for LLMs lives at
+https://locationdrive.com/llms.txt.
+
+Last updated: 2026-08-21.
+
+## Connect — hosted (no install)
+
+Streamable HTTP, stateless, at `https://mcp.locationdrive.com/mcp`.
+Authenticate every request with `Authorization: Bearer ld_live_YOUR_KEY`
+(unauthenticated requests get a 401 JSON error). Keys are self-serve at
+https://locationdrive.com/signup.
+
+Claude Code:
+
+```bash
+claude mcp add --transport http locationdrive https://mcp.locationdrive.com/mcp \
+  --header "Authorization: Bearer ld_live_YOUR_KEY"
+```
+
+Cursor (`.cursor/mcp.json`) and other JSON-configured clients:
+
+```json
+{
+  "mcpServers": {
+    "locationdrive": {
+      "url": "https://mcp.locationdrive.com/mcp",
+      "headers": { "Authorization": "Bearer ld_live_YOUR_KEY" }
+    }
+  }
+}
+```
+
+## Connect — local (stdio via npm)
+
+npm package `@locationdrive/mcp` (bin `locationdrive-mcp`), Node >= 18, with
+the key in the `LOCATIONDRIVE_API_KEY` environment variable.
+
+Claude Code:
+
+```bash
+claude mcp add locationdrive -e LOCATIONDRIVE_API_KEY=ld_live_YOUR_KEY -- npx -y @locationdrive/mcp
+```
+
+JSON-configured clients (Claude Desktop and similar):
+
+```json
+{
+  "mcpServers": {
+    "locationdrive": {
+      "command": "npx",
+      "args": ["-y", "@locationdrive/mcp"],
+      "env": { "LOCATIONDRIVE_API_KEY": "ld_live_YOUR_KEY" }
+    }
+  }
+}
+```
+
+## The 8 tools
+
+Each tool wraps a documented REST endpoint of `https://api.locationdrive.com/v1`:
+
+- `search_places(query, country?, category?, limit≤20)` — search the global POI database by name or keyword; returns businesses with address, coordinates, rating, hours, contact info. Backs `GET /v1/places/search`. Free plan and above.
+- `find_nearby(latitude, longitude, radius_m 50–100000?, category?, limit≤20)` — places around a coordinate, distance-sorted with `distance_m` added. Backs `GET /v1/places/nearby`. Free+.
+- `get_place_details(place_id, fields?)` — full record for one place; `fields` takes a comma-separated list or `*` for all plan-eligible fields, including premium fields like ev_connectors, ev_max_power_kw, fuel_price, menu_items, hotel_price, reviews. Backs `GET /v1/places/{id}`. Free+ (premium fields Business+).
+- `get_place_context(place_id)` — LLM-ready context: a natural-language summary plus structured data, built for grounding answers about a specific business. Prefer it over get_place_details when describing or reasoning about a place. Backs `GET /v1/ai/context/{id}`. Free+.
+- `get_building_polygon(place_id, format geojson|wkt|both?)` — building footprint with A–E accuracy grade and area in m², GeoJSON ready for maps. Backs `GET /v1/polygons/{id}`. Starter+.
+- `find_building_at_point(latitude, longitude)` — reverse building lookup: the footprint containing a coordinate and the business(es) inside. Location Drive's signature capability. Backs `GET /v1/polygons/contains`. Starter+.
+- `brand_footprint(brand)` — brand intelligence summary: store counts by country, open-now count, polygon coverage, average rating. For market sizing and competitor analysis. Backs `GET /v1/brands/{brand}/summary`. Free+.
+- `data_coverage(country?)` — per-country POI counts, or detailed polygon coverage with grade distribution for one ISO-2 country. Call this first when unsure whether a region is covered. Backs `GET /v1/countries` / `GET /v1/polygons/coverage`. Free+.
+
+## Behavior, limits, and errors
+
+- Every tool is annotated read-only; there are no write tools.
+- List tools return compact records (a slim default field set) and cap at 20 results — fetch full records per ID with `get_place_details`. Results are compact single-line JSON for token economy.
+- Plan gating is enforced server-side by the API: polygon tools require Starter+, premium field packs (EV charging, fuel prices, menus, hotel rates, review intelligence) require Business+. Gated calls return a clear upgrade message pointing at https://locationdrive.com/pricing rather than empty data.
+- Error mapping: 401 → invalid or missing API key; 403 (`FORBIDDEN` / `PLAN_REQUIRED`) → the feature needs a higher plan; 429 (`RATE_LIMITED` / `QUOTA_EXCEEDED`) → the key's rate limit or monthly quota is exhausted. Errors come back as MCP tool errors with those messages, never transport failures.
+- `ld_test_` keys work in both modes: synthetic data, zero quota use — ideal for trying the integration, demos, and CI.
+- Rate limits and monthly quotas match the key's plan (Free 2 req/s and 50k req/mo up to Enterprise 200 req/s, unlimited). Heavy agent usage returning 429 means the key's quota is exhausted, not a server fault.
+
+## Example prompts
+
+- "What data coverage does Location Drive have for Anguilla?"
+- "Find restaurants within 1 km of 18.2170, -63.0578."
+- "Which building sits at 18.2168, -63.0581, and what's its accuracy grade?"
+- "How many Starbucks locations are there worldwide, by country?"
+
+## Plans
+
+Free $0 (50k requests/mo) · Starter $99/mo (adds building polygons and the
+Advanced field pack) · Business $399/mo (adds premium field packs, 99.99% SLA)
+· Enterprise custom. Full details and canonical pricing:
+https://locationdrive.com/pricing.
+
+## Docs
+
+- [MCP server docs](https://locationdrive.com/docs#mcp): setup for hosted and local modes on the main site.
+- [Platform llms.txt](https://locationdrive.com/llms.txt): the full LLM-facing summary — all 24 REST endpoints, field packs, plan caps, pricing, delivery methods.
+- [Quick Start](https://locationdrive.com/docs#quick-start): first API call in minutes.
+- [Authentication](https://locationdrive.com/docs#authentication): Bearer keys, ld_live_ vs ld_test_.
+- [REST API reference](https://locationdrive.com/docs#rest-api): every endpoint the tools are built on.
+- [GitHub repository](https://github.com/locationdrive/mcp): source, issues, and development setup.
+- [@locationdrive/mcp on npm](https://www.npmjs.com/package/@locationdrive/mcp): the local stdio package.
+
+## Company and contact
+
+Location Drive LLC, a Delaware company — 131 Continental Dr, Suite 305,
+Newark, DE 19713, USA. Data licensing, NDAs, and sales:
+data@locationdrive.com · privacy: privacy@locationdrive.com ·
+[Privacy policy](https://locationdrive.com/privacy) ·
+[Terms of service](https://locationdrive.com/terms).
+
+## Optional
+
+- [Hosted server landing page](https://mcp.locationdrive.com/): quickstart configs and the tool grid.
+- [Location Drive homepage](https://locationdrive.com/): the POI data platform behind this server.
+- [Sign up free](https://locationdrive.com/signup): get an API key, no credit card.
