@@ -1,6 +1,6 @@
 {
   "name": "@locationdrive/mcp",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Official MCP server for the Location Drive API - global POI data, graded building polygons, EV/fuel/menu/hotel data packs.",
   "license": "MIT",
   "type": "module",

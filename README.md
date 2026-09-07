@@ -3,8 +3,9 @@
 Query the Location Drive location-data platform from Claude, Cursor, or any
 MCP-compatible AI client: global POI search, graded building-footprint
 polygons, brand intelligence, and premium data packs (EV charging, fuel
-prices, menus, hotel rates) — using your own Location Drive API key, so your
-plan, quotas, and usage dashboard apply exactly as with direct API calls.
+prices, full menus, multi-site hotel rates, multi-year review history) — using
+your own Location Drive API key, so your plan, quotas, and usage dashboard
+apply exactly as with direct API calls.
 
 ## Tools
 
@@ -12,8 +13,10 @@ plan, quotas, and usage dashboard apply exactly as with direct API calls.
 |---|---|
 | `search_places` | Search the global POI database by name/keyword |
 | `find_nearby` | Distance-sorted places around a coordinate |
-| `get_place_details` | Full record by ID; premium fields via `fields` on eligible plans |
+| `get_place_details` | Full record by ID; premium fields (menus, hotel rates, EV connectors, fuel, reviews) via `fields` on Business+ |
 | `get_place_context` | LLM-ready summary + structured data for one place |
+| `get_review_history` | Merged multi-year review history, duplicates removed, plus sentiment summary (Business+) |
+| `get_hotel_rates` | Compare room rates across booking sites for one hotel (Business+) |
 | `get_building_polygon` | GeoJSON footprint with A–E accuracy grade (Starter+) |
 | `find_building_at_point` | Reverse lookup: which building contains this coordinate (Starter+) |
 | `brand_footprint` | Store counts, open-now, coverage, avg rating for a brand |
@@ -83,6 +86,8 @@ Ask your AI client things like:
 - *"Find restaurants within 1 km of 18.2170, -63.0578."*
 - *"Which building sits at 18.2168, -63.0581, and what's its accuracy grade?"*
 - *"How many Starbucks locations are there worldwide, by country?"*
+- *"Compare room rates for this hotel across booking sites."*
+- *"How have this restaurant's reviews changed over the past few years?"*
 
 ## Notes
 
