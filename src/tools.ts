@@ -5,12 +5,16 @@ import { ld, out, fail, SLIM_FIELDS } from "./api.js";
 /** Every Location Drive tool is a read-only query against an external API. */
 const READ_ONLY = { readOnlyHint: true, openWorldHint: true } as const;
 
+/** Field selection for get_hotel_rates — the Hospitality pack plus identity. */
+const HOTEL_FIELDS = "name,hotel_class,hotel_price,hotel_details,check_in_time,check_out_time";
+
 /** Server-level usage guidance injected into client context. */
 export const SERVER_INSTRUCTIONS =
   "Location Drive is a global POI database (350M+ places, graded building polygons). " +
   "Call data_coverage first when unsure whether a country/region is covered. " +
-  "Building-polygon tools need a Starter+ plan; premium fields (EV, fuel, menus, hotel rates, reviews) need Business+ — " +
-  "plan errors say so explicitly. ld_test_ keys return synthetic data without using quota.";
+  "Building-polygon tools need a Starter+ plan; premium fields (EV connectors, fuel prices, menus, hotel rates, review history) " +
+  "and the get_review_history / get_hotel_rates tools need Business+ — plan errors say so explicitly. " +
+  "ld_test_ keys return synthetic data without using quota.";
 
 /**
  * Registers all Location Drive tools on an MCP server instance.
@@ -76,8 +80,12 @@ export function registerTools(server: McpServer, getKey: () => string) {
       title: "Get place details",
       description:
         "Full record for one place by its Location Drive ID (from a previous search). " +
-        "Optionally request specific fields — including premium packs on eligible plans: " +
-        "ev_connectors, ev_max_power_kw, fuel_price, menu_items, hotel_price, reviews.",
+        "Optionally request specific fields — including premium packs on Business+ plans: " +
+        "menu_items (full menu: sections → items with structured prices), " +
+        "hotel_details (room-rate offers from multiple booking sites, with links), hotel_price, hotel_class, " +
+        "ev_connectors (per-connector type, power_kw, speed, plug_count) plus ev_connector_types, ev_network, " +
+        "ev_max_power_kw, ev_plug_count, ev_stall_count, ev_speed, fuel_price, " +
+        "reviews, historical_reviews (earlier crawl cycles), review_sentiments.",
       inputSchema: {
         place_id: z.string().describe("Location Drive place ID, e.g. 'ld_3GB7KWu3lxlI'"),
         fields: z.string().optional().describe("Comma-separated field list, or '*' for all plan-eligible fields"),
@@ -105,6 +113,52 @@ export function registerTools(server: McpServer, getKey: () => string) {
     async ({ place_id }) => {
       try {
         return out(await ld(getKey(), `/v1/ai/context/${encodeURIComponent(place_id)}`));
+      } catch (e) { return fail(e); }
+    },
+  );
+
+  server.registerTool(
+    "get_review_history",
+    {
+      title: "Get review history",
+      description:
+        "Merged multi-year review history for one place, duplicates removed: current and historical reviews " +
+        "newest first, each tagged source 'current' or 'historical', with reviews_meta counts (unique_total, " +
+        "from_current, from_historical, duplicates_removed, oldest, newest), overall rating, rating distribution, " +
+        "and a sentiment summary. Use for reputation trends and review analysis over time. Requires Business+.",
+      inputSchema: { place_id: z.string().describe("Location Drive place ID") },
+      annotations: READ_ONLY,
+    },
+    async ({ place_id }) => {
+      try {
+        return out(await ld(getKey(), `/v1/places/${encodeURIComponent(place_id)}/reviews/summary`));
+      } catch (e) { return fail(e); }
+    },
+  );
+
+  server.registerTool(
+    "get_hotel_rates",
+    {
+      title: "Get hotel rates",
+      description:
+        "Compare room rates across booking sites for one hotel: headline nightly rate (hotel_price), star class, " +
+        "per-site offers with prices and links (hotel_details.offers), and check-in/check-out times. " +
+        "Hotel fields require Business+; on lower plans they are stripped and only the name comes back.",
+      inputSchema: { place_id: z.string().describe("Location Drive place ID of the hotel") },
+      annotations: READ_ONLY,
+    },
+    async ({ place_id }) => {
+      try {
+        const body = await ld(getKey(), `/v1/places/${encodeURIComponent(place_id)}`, { fields: HOTEL_FIELDS });
+        const record = (body as any)?.data ?? body;
+        if (record && typeof record === "object" && record.hotel_details == null) {
+          return out({
+            ...(body as object),
+            rates_note:
+              "No room-rate data returned. hotel_* fields require a Business+ plan; on an eligible plan this means no rates are listed for this place.",
+          });
+        }
+        return out(body);
       } catch (e) { return fail(e); }
     },
   );

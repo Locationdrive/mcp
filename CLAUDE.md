@@ -35,7 +35,7 @@ src/api.ts         ld() fetch client (Bearer auth, User-Agent locationdrive-mcp/
                    SLIM_FIELDS (compact default field list for list results),
                    out() → single-line JSON.stringify content block,
                    fail() → isError:true with plan-aware messages (see Error mapping).
-src/tools.ts       registerTools(server, getKey) — all 8 tools; SERVER_INSTRUCTIONS
+src/tools.ts       registerTools(server, getKey) — all 10 tools; SERVER_INSTRUCTIONS
                    string (injected as server instructions at construction).
 src/stdio.ts       Local entrypoint: reads LOCATIONDRIVE_API_KEY (exits with a clear
                    message if missing), StdioServerTransport.
@@ -78,7 +78,7 @@ tsconfig.api.json  noEmit typecheck covering api/** + src/**.
   `ahmedmaher1/locationdrive-mcp` → `Locationdrive/mcp`; all metadata, links,
   and pages point at the org).
 
-## The 8 tools
+## The 10 tools
 
 | Tool | Backing endpoint | Plan |
 |---|---|---|
@@ -86,6 +86,8 @@ tsconfig.api.json  noEmit typecheck covering api/** + src/**.
 | `find_nearby` | `GET /v1/places/nearby` (adds `distance_m`) | Free+ |
 | `get_place_details` | `GET /v1/places/{id}` (`fields` passthrough, `*` allowed) | Free+ (premium fields Business+) |
 | `get_place_context` | `GET /v1/ai/context/{id}` (LLM-ready summary) | Free+ |
+| `get_review_history` | `GET /v1/places/{id}/reviews/summary` (merged current + historical reviews, de-duplicated, `reviews_meta`, sentiments) | **Business+** |
+| `get_hotel_rates` | `GET /v1/places/{id}?fields=name,hotel_class,hotel_price,hotel_details,check_in_time,check_out_time` (adds `rates_note` when `hotel_details` is null) | **Business+** (hotel fields stripped below) |
 | `get_building_polygon` | `GET /v1/polygons/{id}` (`format` geojson/wkt/both) | **Starter+** |
 | `find_building_at_point` | `GET /v1/polygons/contains` | **Starter+** |
 | `brand_footprint` | `GET /v1/brands/{brand}/summary` | Free+ |
@@ -100,7 +102,20 @@ first when coverage is uncertain and explains plan gating + `ld_test_` keys.
   everything except `GET /health`. `ld_test_` keys → synthetic data, no quota.
 - Plans: Free / Starter ($99/mo) / Business ($399/mo) / Enterprise.
   Gating: `/v1/polygons/*` Starter+; premium field packs (EV charging, fuel,
-  menus, hotel rates, review intelligence) Business+.
+  menus, hotel rates, review intelligence) and `/v1/places/{id}/reviews/summary`
+  Business+. Fields above plan are silently stripped, not errors.
+- Premium field shapes (backend, Aug 2026): `menu_items`
+  `{sections:[{name, items:[{name, description, price:{display, amount, currency}}]}]}` ·
+  `hotel_details` `{offers:[{site, url, price:{display, amount, currency}}]}`, with
+  `hotel_price` a headline string ("$314") and `hotel_class` like "4 stars" ·
+  `ev_connectors` `[{type, power_kw, speed, plug_count, port_ids}]` plus
+  `ev_connector_types`, `ev_network`, `ev_max_power_kw`, `ev_plug_count`,
+  `ev_stall_count`, `ev_speed` · `historical_reviews`
+  `{reviews:[{rating, reviewer, date, text}]}` (earlier crawl cycles, may overlap
+  `reviews`) · `reviews/summary` returns merged de-duplicated `reviews` (newest
+  first, `source: "current"|"historical"`) + `reviews_meta` {unique_total,
+  from_current, from_historical, duplicates_removed, oldest, newest} + rating,
+  rating_distribution, sentiments.
 - Error mapping in `fail()` — keep these exact semantics:
   - 403 / `FORBIDDEN` / `PLAN_REQUIRED` → "requires a higher Location Drive
     plan … see https://locationdrive.com/pricing"
@@ -159,7 +174,9 @@ When tools, endpoints, or connection config change, update **all** of:
    and is the npm page),
 3. `public/index.html` (landing page tool grid + quickstart snippets),
 4. website repo `/docs#mcp` section (`DocMcp` in `src/pages/DocsPage.jsx`),
-   homepage callout (`RestGraphQLAPI.jsx`), footer link (`Footer.jsx`).
+   homepage callout (`RestGraphQLAPI.jsx`), footer link (`Footer.jsx`),
+5. both `llms.txt` files — `public/llms.txt` here (mcp.locationdrive.com/llms.txt)
+   and the website's `public/llms.txt` — each lists every tool and the count.
 
 ## Session rules
 
