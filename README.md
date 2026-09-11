@@ -16,6 +16,7 @@ apply exactly as with direct API calls.
 | `get_place_details` | Full record by ID; premium fields (menus, hotel rates, EV connectors, fuel, review text) via `fields` on Business+; `plan_note` when they are stripped |
 | `get_place_context` | LLM-ready summary + structured data (sentiment keywords, not review text) for one place |
 | `get_review_history` | Merged multi-year review text history, duplicates removed, plus sentiment summary (Business+) |
+| `scan_reviews` | Keyword scan of review text across up to 40 places near a point — matching snippets per place; neighborhood scale (Business+) |
 | `get_hotel_rates` | Compare room rates across booking sites for one hotel (Business+) |
 | `get_building_polygon` | GeoJSON footprint with A–E accuracy grade (Starter+) |
 | `find_building_at_point` | Reverse lookup: which building contains this coordinate (Starter+) |
@@ -88,6 +89,7 @@ Ask your AI client things like:
 - *"How many Starbucks locations are there worldwide, by country?"*
 - *"Compare room rates for this hotel across booking sites."*
 - *"How have this restaurant's reviews changed over the past few years?"*
+- *"Which cafés within 1.5 km of 30.0289, 31.4910 have reviews mentioning racism or hijab (عنصرية، حجاب)?"*
 
 ## Notes
 
@@ -99,10 +101,12 @@ Ask your AI client things like:
   de-duplicated). When a lower-plan key requests them, `get_place_details`
   returns a `plan_note` instead of silently omitting them. `get_place_context`
   carries `review_sentiments` keyword counts, not review text.
-- Review data is per place: there is no cross-place search over review content.
-  To find places by what reviewers say, narrow by area/category first
-  (`search_places` / `find_nearby`), then read each candidate with
-  `get_review_history` — one API request per place.
+- Review data is per place: there is no city- or country-wide search over
+  review content. For "which places near a point have reviews mentioning X" use
+  `scan_reviews` — it runs the nearby search, reads up to 40 places' review
+  histories (one API request each), and returns only the matching snippets.
+  Keyword matching is a coarse filter over user-submitted text: read the
+  snippets before drawing conclusions.
 - Rate limits and monthly quotas match your plan; a `429` from heavy agent
   usage means the key's quota is exhausted.
 - `ld_test_` keys work and return synthetic data without counting against

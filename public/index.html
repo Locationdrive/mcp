@@ -56,7 +56,7 @@
     <div class="pillrow">
       <span class="pill">Endpoint <b>mcp.locationdrive.com/mcp</b></span>
       <span class="pill">npm <b>@locationdrive/mcp</b></span>
-      <span class="pill">10 read-only tools</span>
+      <span class="pill">11 read-only tools</span>
     </div>
   </header>
 
@@ -102,6 +102,7 @@
     <div class="tool"><span class="badge">FREE+</span><code>get_place_details</code><p>Full record by ID; premium fields (full menus, hotel rates, EV connectors, fuel, review text) on Business+ — with a plan note when they are stripped.</p></div>
     <div class="tool"><span class="badge">FREE+</span><code>get_place_context</code><p>LLM-ready summary + structured record (sentiment keywords, not review text) for one place.</p></div>
     <div class="tool"><span class="badge business">BUSINESS+</span><code>get_review_history</code><p>Merged multi-year review text history, duplicates removed, plus sentiment summary.</p></div>
+    <div class="tool"><span class="badge business">BUSINESS+</span><code>scan_reviews</code><p>Keyword scan of review text across up to 40 places near a point — matching snippets per place.</p></div>
     <div class="tool"><span class="badge business">BUSINESS+</span><code>get_hotel_rates</code><p>Compare room rates across booking sites — per-site offers with links.</p></div>
     <div class="tool"><span class="badge starter">STARTER+</span><code>get_building_polygon</code><p>GeoJSON footprint with A–E accuracy grade and area.</p></div>
     <div class="tool"><span class="badge starter">STARTER+</span><code>find_building_at_point</code><p>Reverse lookup — which building contains this coordinate.</p></div>
@@ -117,9 +118,10 @@
     <li>“Which building is at 33.7144, −118.0058, and what businesses are inside?”</li>
     <li>“Compare room rates for this hotel across booking sites.”</li>
     <li>“How have this restaurant's reviews changed over the past few years?”</li>
+    <li>“Which cafés within 1.5 km of 30.0289, 31.4910 have reviews mentioning racism or hijab?”</li>
   </ul>
 
-  <div class="note" style="margin-bottom:12px"><b>Review text is per place:</b> <code style="color:var(--signal)">reviews</code>, <code style="color:var(--signal)">historical_reviews</code> and <code style="color:var(--signal)">get_review_history</code> return what reviewers wrote (Business+). There is no cross-place search over review content — narrow by area or category first, then read candidates one by one.</div>
+  <div class="note" style="margin-bottom:12px"><b>Review text is per place:</b> <code style="color:var(--signal)">reviews</code>, <code style="color:var(--signal)">historical_reviews</code> and <code style="color:var(--signal)">get_review_history</code> return what reviewers wrote (Business+). There is no city- or country-wide search over review content — <code style="color:var(--signal)">scan_reviews</code> covers a neighborhood (up to 40 places per call).</div>
 
   <div class="note"><b>Test without quota:</b> <code style="color:var(--signal)">ld_test_</code> keys return synthetic data and never count against your plan — ideal for trying the integration before going live.</div>
 

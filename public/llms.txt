@@ -1,6 +1,6 @@
 # Location Drive MCP Server
 
-> The official Model Context Protocol (MCP) server for Location Drive, the global point-of-interest data platform (350M+ verified places in 250+ countries and territories, 120M+ building polygons graded A–E, 80+ structured fields, 5M daily delta updates). It gives Claude, ChatGPT, Cursor, and any MCP-capable client 10 read-only tools for place search, proximity, building footprints, brand intelligence, LLM-ready place context, multi-year review history, and hotel rate comparison — hosted at https://mcp.locationdrive.com/mcp or run locally via `npx -y @locationdrive/mcp`.
+> The official Model Context Protocol (MCP) server for Location Drive, the global point-of-interest data platform (350M+ verified places in 250+ countries and territories, 120M+ building polygons graded A–E, 80+ structured fields, 5M daily delta updates). It gives Claude, ChatGPT, Cursor, and any MCP-capable client 11 read-only tools for place search, proximity, building footprints, brand intelligence, LLM-ready place context, multi-year review history, neighborhood review scanning, and hotel rate comparison — hosted at https://mcp.locationdrive.com/mcp or run locally via `npx -y @locationdrive/mcp`.
 
 The server is named `locationdrive` and is read-only by design. Both modes use
 the customer's own Location Drive API key, so plan gating, quotas, and usage
@@ -10,7 +10,7 @@ enforcement point. Source: https://github.com/locationdrive/mcp (TypeScript,
 MIT). The full platform summary for LLMs lives at
 https://locationdrive.com/llms.txt.
 
-Last updated: 2026-08-21.
+Last updated: 2026-09-11.
 
 ## Connect — hosted (no install)
 
@@ -64,7 +64,7 @@ JSON-configured clients (Claude Desktop and similar):
 }
 ```
 
-## The 10 tools
+## The 11 tools
 
 Each tool wraps a documented REST endpoint of `https://api.locationdrive.com/v1`:
 
@@ -73,6 +73,7 @@ Each tool wraps a documented REST endpoint of `https://api.locationdrive.com/v1`
 - `get_place_details(place_id, fields?)` — full record for one place; `fields` takes a comma-separated list or `*` for all plan-eligible fields. Premium fields on Business+: `menu_items` (full menu as sections → items with structured prices), `hotel_details` (room-rate offers from multiple booking sites with links), `hotel_price`, `hotel_class`, `ev_connectors` (per-connector type, power_kw, speed, plug_count) plus `ev_connector_types`, `ev_network`, `ev_max_power_kw`, `ev_plug_count`, `ev_stall_count`, `ev_speed`, `fuel_price`, `reviews` (current-cycle review text), `historical_reviews` (review text from earlier crawls), `review_sentiments`. Backs `GET /v1/places/{id}`. If explicitly requested premium fields come back missing, the response carries a `plan_note` (the key's plan is below Business+) instead of silently omitting them.
 - `get_place_context(place_id)` — LLM-ready context: a natural-language summary plus structured data including `review_sentiments` keyword counts (not review text), built for grounding answers about a specific business. Prefer it to describe or reason about a place overall; for what reviewers wrote, use get_review_history. Backs `GET /v1/ai/context/{id}`. Free+.
 - `get_review_history(place_id)` — merged multi-year review text history, duplicates removed: current and historical reviews newest first, each tagged `source: "current"|"historical"`, with `reviews_meta` (unique_total, from_current, from_historical, duplicates_removed, oldest, newest), overall rating, rating distribution, and a sentiment summary. Backs `GET /v1/places/{id}/reviews/summary`. Business+.
+- `scan_reviews(latitude, longitude, keywords[], radius_m?, category?, limit≤40, max_snippets_per_place?)` — keyword scan of review text across the nearest places: runs the nearby search, fetches each place's merged review history, and returns only the matching snippets per place (with rating, date, source) plus the scanned places that had no match. Matching is case-, diacritic-, and alef-variant-insensitive, so pass keywords in every relevant language, e.g. `["racist","عنصرية","hijab","حجاب","محجبة"]`. Cost: 1 + N API requests (N ≤ 40). Neighborhood scale only. Business+.
 - `get_hotel_rates(place_id)` — compare room rates across booking sites for one hotel: headline nightly rate, star class, per-site offers with prices and links, check-in/check-out times. Backs `GET /v1/places/{id}` with the Hospitality fields. Hotel fields are Business+; on lower plans the response carries a `rates_note` explaining why no rates came back.
 - `get_building_polygon(place_id, format geojson|wkt|both?)` — building footprint with A–E accuracy grade and area in m², GeoJSON ready for maps. Backs `GET /v1/polygons/{id}`. Starter+.
 - `find_building_at_point(latitude, longitude)` — reverse building lookup: the footprint containing a coordinate and the business(es) inside. Location Drive's signature capability. Backs `GET /v1/polygons/contains`. Starter+.
@@ -82,7 +83,7 @@ Each tool wraps a documented REST endpoint of `https://api.locationdrive.com/v1`
 ## Behavior, limits, and errors
 
 - Every tool is annotated read-only; there are no write tools.
-- Review text is per place. `reviews` (current crawl) and `historical_reviews` (earlier crawls) are Business+ fields on `get_place_details`; `get_review_history` returns both merged and de-duplicated. There is no cross-place search over review content — to find places by what reviewers say, narrow by area or category first, then read each candidate (one request per place).
+- Review text is per place. `reviews` (current crawl) and `historical_reviews` (earlier crawls) are Business+ fields on `get_place_details`; `get_review_history` returns both merged and de-duplicated. There is no city- or country-wide search over review content — `scan_reviews` covers a neighborhood (up to 40 places, one request each); beyond that, the question needs a backend review-search endpoint (roadmap).
 - Premium fields are silently stripped below Business+. When explicitly requested fields are missing, `get_place_details` adds a `plan_note` saying so; treat missing review fields as a plan limit, never as "Location Drive has no review data".
 - List tools return compact records (a slim default field set) and cap at 20 results — fetch full records per ID with `get_place_details`. Results are compact single-line JSON for token economy.
 - Plan gating is enforced server-side by the API: polygon tools require Starter+; premium field packs (EV charging, fuel prices, full menus, hotel rates, review intelligence) and the `get_review_history` / `get_hotel_rates` tools require Business+. Gated calls return a clear upgrade message pointing at https://locationdrive.com/pricing rather than empty data; fields above plan are silently stripped from `get_place_details`.
@@ -98,6 +99,7 @@ Each tool wraps a documented REST endpoint of `https://api.locationdrive.com/v1`
 - "How many Starbucks locations are there worldwide, by country?"
 - "Compare room rates for this hotel across booking sites."
 - "How have this restaurant's reviews changed over the past few years?"
+- "Which cafés within 1.5 km of 30.0289, 31.4910 have reviews mentioning racism or hijab (عنصرية، حجاب)?"
 
 ## Plans
 

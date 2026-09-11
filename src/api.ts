@@ -13,6 +13,7 @@ export async function ld(
   apiKey: string,
   path: string,
   params: Record<string, string | number | undefined> = {},
+  timeoutMs?: number,
 ): Promise<unknown> {
   const url = new URL(`${BASE}${path}`);
   for (const [k, v] of Object.entries(params)) {
@@ -20,6 +21,7 @@ export async function ld(
   }
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${apiKey}`, "User-Agent": `locationdrive-mcp/${VERSION}` },
+    signal: timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined,
   });
   const text = await res.text();
   let body: any;

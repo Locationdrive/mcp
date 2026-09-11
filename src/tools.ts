@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { ld, out, fail, SLIM_FIELDS } from "./api.js";
+import { scanReviews } from "./scan.js";
 
 /** Every Location Drive tool is a read-only query against an external API. */
 const READ_ONLY = { readOnlyHint: true, openWorldHint: true } as const;
@@ -46,8 +47,9 @@ export const SERVER_INSTRUCTIONS =
   "Review text DOES exist on Business+: reviews (current crawl), historical_reviews (earlier crawls), and get_review_history " +
   "(both merged, de-duplicated). If those fields come back missing, the key's plan is below Business+ — say that, never that " +
   "Location Drive has no review data. get_place_context returns a summary plus review_sentiments keyword counts, not review text. " +
-  "Review data is per place: there is no cross-place search over review content. To find places by what reviewers say, narrow " +
-  "by area/category with search_places or find_nearby, then read each candidate with get_review_history (one call per place). " +
+  "Review data is per place: there is no city- or country-wide search over review content. For 'which places near a point " +
+  "have reviews mentioning X' use scan_reviews (scans up to 40 nearest places, one request each, returns matching snippets); " +
+  "for one place use get_review_history. " +
   "ld_test_ keys return synthetic data without using quota.";
 
 /**
@@ -165,14 +167,48 @@ export function registerTools(server: McpServer, getKey: () => string) {
         "newest first, each tagged source 'current' or 'historical', with reviews_meta counts (unique_total, " +
         "from_current, from_historical, duplicates_removed, oldest, newest), overall rating, rating distribution, " +
         "and a sentiment summary. This is the tool for what reviewers said about ONE place — complaints, incidents, " +
-        "recurring themes, reputation trends. There is no cross-place search over review content: to find places by what " +
-        "reviews say, narrow by area/category first (search_places / find_nearby), then call this per candidate. Requires Business+.",
+        "recurring themes, reputation trends. For 'which places near a point have reviews mentioning X' use scan_reviews " +
+        "instead; there is no city- or country-wide review search. Requires Business+.",
       inputSchema: { place_id: z.string().describe("Location Drive place ID") },
       annotations: READ_ONLY,
     },
     async ({ place_id }) => {
       try {
         return out(await ld(getKey(), `/v1/places/${encodeURIComponent(place_id)}/reviews/summary`));
+      } catch (e) { return fail(e); }
+    },
+  );
+
+  server.registerTool(
+    "scan_reviews",
+    {
+      title: "Scan nearby reviews for keywords",
+      description:
+        "Scan the review text of up to 40 places near a point for keywords and return the matching review snippets " +
+        "per place. Use for 'which cafés/restaurants near X have reviews mentioning Y' — complaints, incidents, or themes " +
+        "such as discrimination, harassment, hygiene, noise. Give keywords in every relevant language and spelling " +
+        "(e.g. Arabic and English); matching is case-, diacritic- and alef-variant-insensitive substring matching. " +
+        "Cost: one nearby search plus one request per scanned place (≤41 API requests). Neighborhood scale only — " +
+        "there is no city- or country-wide review search. Requires Business+ (review text). Snippets are user-submitted " +
+        "opinions: read them before drawing conclusions and quote reviewers rather than labeling businesses.",
+      inputSchema: {
+        latitude: z.number().min(-90).max(90).describe("Latitude in decimal degrees (WGS84)"),
+        longitude: z.number().min(-180).max(180).describe("Longitude in decimal degrees (WGS84)"),
+        keywords: z.array(z.string().min(2)).min(1).max(30)
+          .describe("Terms to look for in review text, any language, e.g. ['racist','عنصرية','hijab','حجاب','محجبة']"),
+        radius_m: z.number().int().min(50).max(100000).optional().describe("Search radius in meters (default 1500)"),
+        category: z.string().optional().describe("Category filter for the nearby search, e.g. 'Restaurant' or 'Cafe'"),
+        limit: z.number().int().min(1).max(40).optional().describe("Max places to scan, nearest first (default 20, max 40)"),
+        max_snippets_per_place: z.number().int().min(1).max(10).optional().describe("Max matching snippets returned per place (default 3)"),
+      },
+      annotations: READ_ONLY,
+    },
+    async ({ latitude, longitude, keywords, radius_m, category, limit, max_snippets_per_place }) => {
+      try {
+        return out(await scanReviews(getKey(), {
+          latitude, longitude, keywords, radius_m: radius_m ?? 1500, category,
+          limit: limit ?? 20, max_snippets_per_place: max_snippets_per_place ?? 3,
+        }));
       } catch (e) { return fail(e); }
     },
   );
