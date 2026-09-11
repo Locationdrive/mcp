@@ -35,8 +35,13 @@ src/api.ts         ld() fetch client (Bearer auth, User-Agent locationdrive-mcp/
                    SLIM_FIELDS (compact default field list for list results),
                    out() → single-line JSON.stringify content block,
                    fail() → isError:true with plan-aware messages (see Error mapping).
-src/tools.ts       registerTools(server, getKey) — all 10 tools; SERVER_INSTRUCTIONS
+src/tools.ts       registerTools(server, getKey) — all 11 tools; SERVER_INSTRUCTIONS
                    string (injected as server instructions at construction).
+src/scan.ts        scanReviews(): the one fan-out tool — nearby search, then
+                   /reviews/summary per place (≤40, concurrency 6, 45 s soft deadline,
+                   15 s per request), keyword matching with Arabic-aware normalization
+                   (tashkeel stripped, alef variants, ى→ي, ة→ه), snippets cut from the
+                   original text. Aborts the whole scan on 401/403/429.
 src/stdio.ts       Local entrypoint: reads LOCATIONDRIVE_API_KEY (exits with a clear
                    message if missing), StdioServerTransport.
 api/mcp.ts         Vercel entrypoint: CORS headers, OPTIONS preflight, extracts the
@@ -69,7 +74,10 @@ tsconfig.api.json  noEmit typecheck covering api/** + src/**.
   economy for the calling model) and errors through `fail()` (returns
   `isError: true`, never throws to the transport).
 - List tools default to `SLIM_FIELDS` and cap `limit` at 20 — full records are
-  fetched per-ID via `get_place_details`. Keep responses small.
+  fetched per-ID via `get_place_details`. Keep responses small. `scan_reviews`
+  is the one deliberate exception: it fans out to ≤40 review fetches per call
+  and returns only matching snippets — keep it bounded (limit ≤40, concurrency
+  6, soft deadline inside Vercel's 60 s).
 - Only **documented** API endpoints (the 24 in the website docs). Undocumented
   paths (e.g. `/v1/autocomplete`) were removed once already — don't reintroduce.
 - No secrets in the repo, ever: keys appear only as `ld_live_YOUR_KEY`
@@ -78,7 +86,7 @@ tsconfig.api.json  noEmit typecheck covering api/** + src/**.
   `ahmedmaher1/locationdrive-mcp` → `Locationdrive/mcp`; all metadata, links,
   and pages point at the org).
 
-## The 10 tools
+## The 11 tools
 
 | Tool | Backing endpoint | Plan |
 |---|---|---|
@@ -87,6 +95,7 @@ tsconfig.api.json  noEmit typecheck covering api/** + src/**.
 | `get_place_details` | `GET /v1/places/{id}` (`fields` passthrough, `*` allowed; adds `plan_note` when explicitly requested premium fields come back missing) | Free+ (premium fields Business+) |
 | `get_place_context` | `GET /v1/ai/context/{id}` (LLM-ready summary) | Free+ |
 | `get_review_history` | `GET /v1/places/{id}/reviews/summary` (merged current + historical reviews, de-duplicated, `reviews_meta`, sentiments) | **Business+** |
+| `scan_reviews` | `GET /v1/places/nearby` (≤40, minimal fields) + `GET /v1/places/{id}/reviews/summary` per place; returns only matching review snippets per place + `no_match_places` | **Business+** |
 | `get_hotel_rates` | `GET /v1/places/{id}?fields=name,hotel_class,hotel_price,hotel_details,check_in_time,check_out_time` (adds `rates_note` when `hotel_details` is null) | **Business+** (hotel fields stripped below) |
 | `get_building_polygon` | `GET /v1/polygons/{id}` (`format` geojson/wkt/both) | **Starter+** |
 | `find_building_at_point` | `GET /v1/polygons/contains` | **Starter+** |
@@ -96,7 +105,8 @@ tsconfig.api.json  noEmit typecheck covering api/** + src/**.
 `SERVER_INSTRUCTIONS` (src/tools.ts) tells clients to call `data_coverage`
 first when coverage is uncertain, explains plan gating + `ld_test_` keys, states
 that review text exists on Business+ (missing fields = plan gating, never "no
-review data"), and that review data is per place (no cross-place review search).
+review data"), and that review data is per place (`scan_reviews` for a neighborhood; no city- or
+country-wide review search).
 
 ## API truth
 
@@ -109,7 +119,8 @@ review data"), and that review data is per place (no cross-place review search).
 - There is **no cross-place search over review content** — review text
   (`reviews`, `historical_reviews`, `reviews/summary`) is per place. The
   "which places in <country> have reviews mentioning X" question is out of reach
-  for the MCP (one request per place, millions of places); it needs a backend
+  for the MCP (one request per place, millions of places) — `scan_reviews` handles
+  the neighborhood version (≤40 nearest places); country scale needs a backend
   review-search or topic-filter endpoint (roadmap: semantic search). A Sept 2026
   incident: an assistant on a sub-Business key told a user Location Drive "has
   no review text" — that's why `plan_note` and the instructions exist.
