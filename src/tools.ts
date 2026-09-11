@@ -8,12 +8,46 @@ const READ_ONLY = { readOnlyHint: true, openWorldHint: true } as const;
 /** Field selection for get_hotel_rates — the Hospitality pack plus identity. */
 const HOTEL_FIELDS = "name,hotel_class,hotel_price,hotel_details,check_in_time,check_out_time";
 
+/** Premium (Business+) fields — the API silently strips them on lower plans. */
+const PREMIUM_FIELDS = new Set([
+  "menu_items", "hotel_details", "hotel_price", "hotel_class",
+  "ev_connectors", "ev_connector_types", "ev_network", "ev_max_power_kw", "ev_plug_count", "ev_stall_count", "ev_speed",
+  "fuel_types", "fuel_price", "reviews", "historical_reviews", "review_sentiments",
+]);
+
+/**
+ * When explicitly requested premium fields come back missing, say why. Without this a
+ * model concludes "Location Drive has no review text" when the truth is "this key's
+ * plan is below Business+".
+ */
+function withPlanNote(body: unknown, fields?: string) {
+  if (!fields || fields.trim() === "*") return body;
+  const requested = fields.split(",").map((f) => f.trim()).filter((f) => PREMIUM_FIELDS.has(f));
+  if (requested.length === 0) return body;
+  const record = (body as any)?.data ?? body;
+  if (!record || typeof record !== "object") return body;
+  const missing = requested.filter((f) => !(f in record));
+  if (missing.length === 0) return body;
+  return {
+    ...(body as object),
+    plan_note:
+      `Requested premium field(s) not returned: ${missing.join(", ")}. Premium fields — including review text in ` +
+      "reviews / historical_reviews — exist on Business+ plans and are silently stripped below that, so this key's plan " +
+      "is most likely Free or Starter. Do not conclude the data does not exist; see https://locationdrive.com/pricing.",
+  };
+}
+
 /** Server-level usage guidance injected into client context. */
 export const SERVER_INSTRUCTIONS =
   "Location Drive is a global POI database (350M+ places, graded building polygons). " +
   "Call data_coverage first when unsure whether a country/region is covered. " +
-  "Building-polygon tools need a Starter+ plan; premium fields (EV connectors, fuel prices, menus, hotel rates, review history) " +
+  "Building-polygon tools need a Starter+ plan; premium fields (EV connectors, fuel prices, menus, hotel rates, review text) " +
   "and the get_review_history / get_hotel_rates tools need Business+ — plan errors say so explicitly. " +
+  "Review text DOES exist on Business+: reviews (current crawl), historical_reviews (earlier crawls), and get_review_history " +
+  "(both merged, de-duplicated). If those fields come back missing, the key's plan is below Business+ — say that, never that " +
+  "Location Drive has no review data. get_place_context returns a summary plus review_sentiments keyword counts, not review text. " +
+  "Review data is per place: there is no cross-place search over review content. To find places by what reviewers say, narrow " +
+  "by area/category with search_places or find_nearby, then read each candidate with get_review_history (one call per place). " +
   "ld_test_ keys return synthetic data without using quota.";
 
 /**
@@ -85,7 +119,10 @@ export function registerTools(server: McpServer, getKey: () => string) {
         "hotel_details (room-rate offers from multiple booking sites, with links), hotel_price, hotel_class, " +
         "ev_connectors (per-connector type, power_kw, speed, plug_count) plus ev_connector_types, ev_network, " +
         "ev_max_power_kw, ev_plug_count, ev_stall_count, ev_speed, fuel_price, " +
-        "reviews, historical_reviews (earlier crawl cycles), review_sentiments.",
+        "reviews (current-cycle review text), historical_reviews (review text from earlier crawl cycles), review_sentiments. " +
+        "Ask for fields=reviews,historical_reviews to read what reviewers actually wrote, or use get_review_history for the " +
+        "merged, de-duplicated history. If requested premium fields are missing, the response carries a plan_note — the key's " +
+        "plan is below Business+, not a gap in the data.",
       inputSchema: {
         place_id: z.string().describe("Location Drive place ID, e.g. 'ld_3GB7KWu3lxlI'"),
         fields: z.string().optional().describe("Comma-separated field list, or '*' for all plan-eligible fields"),
@@ -94,7 +131,7 @@ export function registerTools(server: McpServer, getKey: () => string) {
     },
     async ({ place_id, fields }) => {
       try {
-        return out(await ld(getKey(), `/v1/places/${encodeURIComponent(place_id)}`, { fields }));
+        return out(withPlanNote(await ld(getKey(), `/v1/places/${encodeURIComponent(place_id)}`, { fields }), fields));
       } catch (e) { return fail(e); }
     },
   );
@@ -104,9 +141,11 @@ export function registerTools(server: McpServer, getKey: () => string) {
     {
       title: "Get place context (LLM-ready)",
       description:
-        "LLM-ready context for one place: a natural-language summary plus structured data, " +
-        "built for grounding answers about a specific business. Prefer this over get_place_details " +
-        "when the goal is to describe or reason about the place rather than extract raw fields.",
+        "LLM-ready context for one place: a natural-language summary plus structured data, including " +
+        "review_sentiments (topic keyword counts, e.g. pizza: 21, service: 14) — NOT review text. " +
+        "Prefer this to describe or reason about a place overall. For what reviewers actually wrote " +
+        "(complaints, incidents, specific experiences) use get_review_history, or get_place_details with " +
+        "fields=reviews,historical_reviews.",
       inputSchema: { place_id: z.string().describe("Location Drive place ID") },
       annotations: READ_ONLY,
     },
@@ -125,7 +164,9 @@ export function registerTools(server: McpServer, getKey: () => string) {
         "Merged multi-year review history for one place, duplicates removed: current and historical reviews " +
         "newest first, each tagged source 'current' or 'historical', with reviews_meta counts (unique_total, " +
         "from_current, from_historical, duplicates_removed, oldest, newest), overall rating, rating distribution, " +
-        "and a sentiment summary. Use for reputation trends and review analysis over time. Requires Business+.",
+        "and a sentiment summary. This is the tool for what reviewers said about ONE place — complaints, incidents, " +
+        "recurring themes, reputation trends. There is no cross-place search over review content: to find places by what " +
+        "reviews say, narrow by area/category first (search_places / find_nearby), then call this per candidate. Requires Business+.",
       inputSchema: { place_id: z.string().describe("Location Drive place ID") },
       annotations: READ_ONLY,
     },

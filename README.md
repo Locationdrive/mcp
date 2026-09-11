@@ -13,9 +13,9 @@ apply exactly as with direct API calls.
 |---|---|
 | `search_places` | Search the global POI database by name/keyword |
 | `find_nearby` | Distance-sorted places around a coordinate |
-| `get_place_details` | Full record by ID; premium fields (menus, hotel rates, EV connectors, fuel, reviews) via `fields` on Business+ |
-| `get_place_context` | LLM-ready summary + structured data for one place |
-| `get_review_history` | Merged multi-year review history, duplicates removed, plus sentiment summary (Business+) |
+| `get_place_details` | Full record by ID; premium fields (menus, hotel rates, EV connectors, fuel, review text) via `fields` on Business+; `plan_note` when they are stripped |
+| `get_place_context` | LLM-ready summary + structured data (sentiment keywords, not review text) for one place |
+| `get_review_history` | Merged multi-year review text history, duplicates removed, plus sentiment summary (Business+) |
 | `get_hotel_rates` | Compare room rates across booking sites for one hotel (Business+) |
 | `get_building_polygon` | GeoJSON footprint with A–E accuracy grade (Starter+) |
 | `find_building_at_point` | Reverse lookup: which building contains this coordinate (Starter+) |
@@ -94,6 +94,15 @@ Ask your AI client things like:
 - Plan gating is enforced server-side: polygon tools require Starter+, and
   premium fields (EV, fuel, menus, hotel rates, reviews) require Business+.
   The tools return clear upgrade messages rather than empty data.
+- Review text exists on Business+ — `reviews` (current crawl),
+  `historical_reviews` (earlier crawls), and `get_review_history` (both merged,
+  de-duplicated). When a lower-plan key requests them, `get_place_details`
+  returns a `plan_note` instead of silently omitting them. `get_place_context`
+  carries `review_sentiments` keyword counts, not review text.
+- Review data is per place: there is no cross-place search over review content.
+  To find places by what reviewers say, narrow by area/category first
+  (`search_places` / `find_nearby`), then read each candidate with
+  `get_review_history` — one API request per place.
 - Rate limits and monthly quotas match your plan; a `429` from heavy agent
   usage means the key's quota is exhausted.
 - `ld_test_` keys work and return synthetic data without counting against

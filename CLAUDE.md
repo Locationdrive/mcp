@@ -84,7 +84,7 @@ tsconfig.api.json  noEmit typecheck covering api/** + src/**.
 |---|---|---|
 | `search_places` | `GET /v1/places/search` | Free+ |
 | `find_nearby` | `GET /v1/places/nearby` (adds `distance_m`) | Free+ |
-| `get_place_details` | `GET /v1/places/{id}` (`fields` passthrough, `*` allowed) | Free+ (premium fields Business+) |
+| `get_place_details` | `GET /v1/places/{id}` (`fields` passthrough, `*` allowed; adds `plan_note` when explicitly requested premium fields come back missing) | Free+ (premium fields Business+) |
 | `get_place_context` | `GET /v1/ai/context/{id}` (LLM-ready summary) | Free+ |
 | `get_review_history` | `GET /v1/places/{id}/reviews/summary` (merged current + historical reviews, de-duplicated, `reviews_meta`, sentiments) | **Business+** |
 | `get_hotel_rates` | `GET /v1/places/{id}?fields=name,hotel_class,hotel_price,hotel_details,check_in_time,check_out_time` (adds `rates_note` when `hotel_details` is null) | **Business+** (hotel fields stripped below) |
@@ -94,7 +94,9 @@ tsconfig.api.json  noEmit typecheck covering api/** + src/**.
 | `data_coverage` | `/v1/countries` (no arg) or `/v1/polygons/coverage?country=XX` | Free+ |
 
 `SERVER_INSTRUCTIONS` (src/tools.ts) tells clients to call `data_coverage`
-first when coverage is uncertain and explains plan gating + `ld_test_` keys.
+first when coverage is uncertain, explains plan gating + `ld_test_` keys, states
+that review text exists on Business+ (missing fields = plan gating, never "no
+review data"), and that review data is per place (no cross-place review search).
 
 ## API truth
 
@@ -104,6 +106,13 @@ first when coverage is uncertain and explains plan gating + `ld_test_` keys.
   Gating: `/v1/polygons/*` Starter+; premium field packs (EV charging, fuel,
   menus, hotel rates, review intelligence) and `/v1/places/{id}/reviews/summary`
   Business+. Fields above plan are silently stripped, not errors.
+- There is **no cross-place search over review content** — review text
+  (`reviews`, `historical_reviews`, `reviews/summary`) is per place. The
+  "which places in <country> have reviews mentioning X" question is out of reach
+  for the MCP (one request per place, millions of places); it needs a backend
+  review-search or topic-filter endpoint (roadmap: semantic search). A Sept 2026
+  incident: an assistant on a sub-Business key told a user Location Drive "has
+  no review text" — that's why `plan_note` and the instructions exist.
 - Premium field shapes (backend, Aug 2026): `menu_items`
   `{sections:[{name, items:[{name, description, price:{display, amount, currency}}]}]}` ·
   `hotel_details` `{offers:[{site, url, price:{display, amount, currency}}]}`, with

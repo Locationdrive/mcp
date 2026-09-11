@@ -99,9 +99,9 @@
   <div class="tools">
     <div class="tool"><span class="badge">FREE+</span><code>search_places</code><p>Search the global POI database by name or keyword.</p></div>
     <div class="tool"><span class="badge">FREE+</span><code>find_nearby</code><p>Distance-sorted places around a coordinate.</p></div>
-    <div class="tool"><span class="badge">FREE+</span><code>get_place_details</code><p>Full record by ID; premium fields (full menus, hotel rates, EV connectors, fuel, review history) on Business+.</p></div>
-    <div class="tool"><span class="badge">FREE+</span><code>get_place_context</code><p>LLM-ready summary + structured record for one place.</p></div>
-    <div class="tool"><span class="badge business">BUSINESS+</span><code>get_review_history</code><p>Merged multi-year review history, duplicates removed, plus sentiment summary.</p></div>
+    <div class="tool"><span class="badge">FREE+</span><code>get_place_details</code><p>Full record by ID; premium fields (full menus, hotel rates, EV connectors, fuel, review text) on Business+ — with a plan note when they are stripped.</p></div>
+    <div class="tool"><span class="badge">FREE+</span><code>get_place_context</code><p>LLM-ready summary + structured record (sentiment keywords, not review text) for one place.</p></div>
+    <div class="tool"><span class="badge business">BUSINESS+</span><code>get_review_history</code><p>Merged multi-year review text history, duplicates removed, plus sentiment summary.</p></div>
     <div class="tool"><span class="badge business">BUSINESS+</span><code>get_hotel_rates</code><p>Compare room rates across booking sites — per-site offers with links.</p></div>
     <div class="tool"><span class="badge starter">STARTER+</span><code>get_building_polygon</code><p>GeoJSON footprint with A–E accuracy grade and area.</p></div>
     <div class="tool"><span class="badge starter">STARTER+</span><code>find_building_at_point</code><p>Reverse lookup — which building contains this coordinate.</p></div>
@@ -118,6 +118,8 @@
     <li>“Compare room rates for this hotel across booking sites.”</li>
     <li>“How have this restaurant's reviews changed over the past few years?”</li>
   </ul>
+
+  <div class="note" style="margin-bottom:12px"><b>Review text is per place:</b> <code style="color:var(--signal)">reviews</code>, <code style="color:var(--signal)">historical_reviews</code> and <code style="color:var(--signal)">get_review_history</code> return what reviewers wrote (Business+). There is no cross-place search over review content — narrow by area or category first, then read candidates one by one.</div>
 
   <div class="note"><b>Test without quota:</b> <code style="color:var(--signal)">ld_test_</code> keys return synthetic data and never count against your plan — ideal for trying the integration before going live.</div>
 
