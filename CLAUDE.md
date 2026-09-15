@@ -31,15 +31,18 @@ and footer link must stay in sync with this repo (see "Sync points").
 ```
 src/version.ts     VERSION + SERVER_NAME ("locationdrive").
                    VERSION must ALWAYS equal package.json "version" — bump both.
-src/api.ts         ld() fetch client (Bearer auth, User-Agent locationdrive-mcp/<ver>),
+src/api.ts         ld() fetch client (Bearer auth, User-Agent locationdrive-mcp/<ver>,
+                   default 20 s timeout — LOCATIONDRIVE_TIMEOUT_MS — surfacing as LDError
+                   504 UPSTREAM_TIMEOUT; raw non-JSON upstream bodies are never relayed),
                    SLIM_FIELDS (compact default field list for list results),
                    out() → single-line JSON.stringify content block,
                    fail() → isError:true with plan-aware messages (see Error mapping).
 src/tools.ts       registerTools(server, getKey) — all 11 tools; SERVER_INSTRUCTIONS
                    string (injected as server instructions at construction).
 src/scan.ts        scanReviews(): the one fan-out tool — nearby search, then
-                   /reviews/summary per place (≤40, concurrency 6, 45 s soft deadline,
-                   15 s per request), keyword matching with Arabic-aware normalization
+                   /reviews/summary per place (≤40, ≤10 for ld_test_ keys; concurrency 6,
+                   45 s soft deadline checked per place AND per review, 15 s per request,
+                   20k chars per review), keyword matching with Arabic-aware normalization
                    (tashkeel stripped, alef variants, ى→ي, ة→ه), snippets cut from the
                    original text. Aborts the whole scan on 401/403/429.
 src/stdio.ts       Local entrypoint: reads LOCATIONDRIVE_API_KEY (exits with a clear
@@ -48,7 +51,8 @@ api/mcp.ts         Vercel entrypoint: CORS headers, OPTIONS preflight, extracts 
                    Bearer token (401 JSON if absent), builds a NEW McpServer +
                    StreamableHTTPServerTransport per request with
                    sessionIdGenerator: undefined (STATELESS — required, Vercel
-                   functions share no memory), transport.handleRequest(req, res, req.body).
+                   functions share no memory), transport.handleRequest(req, res, req.body) —
+                   all inside try/catch → generic JSON-RPC -32603 on failure, nothing leaks.
 public/index.html  Landing page served at / — self-contained static HTML (inline CSS/JS,
                    no external assets): quickstart configs, tool grid, copy buttons.
 vercel.json        functions: api/mcp.ts (maxDuration 60) — declared EXPLICITLY so a
@@ -78,6 +82,12 @@ tsconfig.api.json  noEmit typecheck covering api/** + src/**.
   is the one deliberate exception: it fans out to ≤40 review fetches per call
   and returns only matching snippets — keep it bounded (limit ≤40, concurrency
   6, soft deadline inside Vercel's 60 s).
+- Hardening baseline (v1.0.7, from the Sept 2026 security audit): every upstream
+  call has a timeout; raw non-JSON upstream bodies never reach the model;
+  `scan_reviews` is bounded per review and capped at 10 places for `ld_test_`
+  keys; `api/mcp.ts` never leaks errors. Still open for the owner: operator-side
+  rate limiting of `/api/mcp` (audit finding H2) is a Vercel Firewall rule, not
+  code — in code the caller's plan limits remain the only backstop.
 - Only **documented** API endpoints (the 24 in the website docs). Undocumented
   paths (e.g. `/v1/autocomplete`) were removed once already — don't reintroduce.
 - No secrets in the repo, ever: keys appear only as `ld_live_YOUR_KEY`
@@ -95,7 +105,7 @@ tsconfig.api.json  noEmit typecheck covering api/** + src/**.
 | `get_place_details` | `GET /v1/places/{id}` (`fields` passthrough, `*` allowed; adds `plan_note` when explicitly requested premium fields come back missing) | Free+ (premium fields Business+) |
 | `get_place_context` | `GET /v1/ai/context/{id}` (LLM-ready summary) | Free+ |
 | `get_review_history` | `GET /v1/places/{id}/reviews/summary` (merged current + historical reviews, de-duplicated, `reviews_meta`, sentiments) | **Business+** |
-| `scan_reviews` | `GET /v1/places/nearby` (≤40, minimal fields) + `GET /v1/places/{id}/reviews/summary` per place; returns only matching review snippets per place + `no_match_places` | **Business+** |
+| `scan_reviews` | `GET /v1/places/nearby` (≤40, ≤10 for ld_test_ keys; minimal fields) + `GET /v1/places/{id}/reviews/summary` per place; returns only matching review snippets per place + `no_match_places` | **Business+** |
 | `get_hotel_rates` | `GET /v1/places/{id}?fields=name,hotel_class,hotel_price,hotel_details,check_in_time,check_out_time` (adds `rates_note` when `hotel_details` is null) | **Business+** (hotel fields stripped below) |
 | `get_building_polygon` | `GET /v1/polygons/{id}` (`format` geojson/wkt/both) | **Starter+** |
 | `find_building_at_point` | `GET /v1/polygons/contains` | **Starter+** |

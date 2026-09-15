@@ -34,6 +34,7 @@ export interface ScanResult {
   places_with_matches: number;
   reviews_scanned: number;
   api_requests: number;
+  scan_limit: number;
   partial: boolean;
   keywords: string[];
   matches: PlaceScan[];
@@ -55,6 +56,8 @@ export interface ScanOptions {
 const CONCURRENCY = 6;
 const SOFT_DEADLINE_MS = 45_000;      // Vercel maxDuration is 60 s — leave headroom
 const PER_REQUEST_TIMEOUT_MS = 15_000;
+const MAX_REVIEW_CHARS = 20_000;      // bound per-review normalization work and memory
+const TEST_KEY_MAX_PLACES = 10;       // ld_test_ keys are quota-free — cap their fan-out
 const SNIPPET_PAD = 140;
 const NEARBY_FIELDS = "id,name,category,formatted_address,rating,review_count,distance_m";
 
@@ -128,12 +131,14 @@ export async function scanReviews(apiKey: string, opts: ScanOptions): Promise<Sc
   const kws = opts.keywords
     .map((raw) => ({ raw, norm: normalizeKeyword(raw) }))
     .filter((k) => k.norm.length > 0);
+  const isTestKey = apiKey.startsWith("ld_test_");
+  const limit = isTestKey ? Math.min(opts.limit, TEST_KEY_MAX_PLACES) : opts.limit;
 
   const nearby: any = await ld(apiKey, "/v1/places/nearby", {
     lat: opts.latitude, lng: opts.longitude, radius: opts.radius_m,
-    category: opts.category, limit: opts.limit, fields: NEARBY_FIELDS,
+    category: opts.category, limit, fields: NEARBY_FIELDS,
   }, PER_REQUEST_TIMEOUT_MS);
-  const places: any[] = (nearby?.data ?? nearby?.results ?? []).slice(0, opts.limit);
+  const places: any[] = (nearby?.data ?? nearby?.results ?? []).slice(0, limit);
 
   let apiRequests = 1;
   let fatal: unknown = null;
@@ -166,7 +171,8 @@ export async function scanReviews(apiKey: string, opts: ScanOptions): Promise<Sc
       const snippets: ReviewHit[] = [];
       let matched = 0;
       for (const r of reviews) {
-        const hit = matchReview(String(r?.text ?? ""), kws);
+        if (Date.now() - started > SOFT_DEADLINE_MS) { partial = true; break; }
+        const hit = matchReview(String(r?.text ?? "").slice(0, MAX_REVIEW_CHARS), kws);
         if (!hit) continue;
         matched++;
         if (snippets.length < opts.max_snippets_per_place) {
@@ -194,6 +200,7 @@ export async function scanReviews(apiKey: string, opts: ScanOptions): Promise<Sc
     places_with_matches: matches.length,
     reviews_scanned: reviewsScanned,
     api_requests: apiRequests,
+    scan_limit: limit,
     partial,
     keywords: kws.map((k) => k.raw),
     matches,
@@ -201,6 +208,7 @@ export async function scanReviews(apiKey: string, opts: ScanOptions): Promise<Sc
     fetch_errors: fetchErrors,
     note:
       (partial ? "Time limit reached before every nearby place was scanned; results are partial. " : "") +
+      (isTestKey ? `Test keys (ld_test_) scan at most ${TEST_KEY_MAX_PLACES} places per call. ` : "") +
       `Scanned ${done.length} of the nearest places only — this is a neighborhood scan, not a city- or country-wide search. ` +
       "Keyword matching is a coarse filter over user-submitted review text: read the snippets before drawing conclusions, " +
       "quote reviewers rather than labeling businesses, and treat a place with no match as unchecked for other phrasings, not cleared.",

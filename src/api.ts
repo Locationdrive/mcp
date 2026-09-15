@@ -2,6 +2,8 @@ import { VERSION } from "./version.js";
 
 /** Minimal Location Drive API client used by every tool. */
 const BASE = process.env.LOCATIONDRIVE_API_BASE ?? "https://api.locationdrive.com";
+/** Every upstream call is bounded; override for ops/testing with LOCATIONDRIVE_TIMEOUT_MS. */
+const DEFAULT_TIMEOUT_MS = Number(process.env.LOCATIONDRIVE_TIMEOUT_MS) || 20_000;
 
 export class LDError extends Error {
   constructor(public status: number, public code: string, message: string) {
@@ -13,25 +15,43 @@ export async function ld(
   apiKey: string,
   path: string,
   params: Record<string, string | number | undefined> = {},
-  timeoutMs?: number,
+  timeoutMs: number = DEFAULT_TIMEOUT_MS,
 ): Promise<unknown> {
   const url = new URL(`${BASE}${path}`);
   for (const [k, v] of Object.entries(params)) {
     if (v !== undefined && v !== "") url.searchParams.set(k, String(v));
   }
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${apiKey}`, "User-Agent": `locationdrive-mcp/${VERSION}` },
-    signal: timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined,
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      headers: { Authorization: `Bearer ${apiKey}`, "User-Agent": `locationdrive-mcp/${VERSION}` },
+      signal: timeoutMs > 0 ? AbortSignal.timeout(timeoutMs) : undefined,
+    });
+  } catch (e: any) {
+    if (e?.name === "TimeoutError" || e?.name === "AbortError") {
+      throw new LDError(504, "UPSTREAM_TIMEOUT", `Upstream request timed out after ${timeoutMs} ms`);
+    }
+    throw e;
+  }
   const text = await res.text();
-  let body: any;
-  try { body = JSON.parse(text); } catch { body = { message: text.slice(0, 300) }; }
+  let body: any = null;
+  let isJson = true;
+  try { body = JSON.parse(text); } catch { isJson = false; }
   if (!res.ok) {
-    const code = body?.code ?? `HTTP_${res.status}`;
-    const msg = body?.message ?? body?.error ?? "Request failed";
+    // Never relay raw upstream bodies (WAF/CDN error pages) to the model.
+    const code = isJson ? String(body?.code ?? `HTTP_${res.status}`) : `HTTP_${res.status}`;
+    const msg = isJson
+      ? clean(String(body?.message ?? body?.error ?? "Request failed"))
+      : `Upstream returned a non-JSON ${res.status} response`;
     throw new LDError(res.status, code, msg);
   }
+  if (!isJson) throw new LDError(res.status, "BAD_UPSTREAM_BODY", "Upstream returned a non-JSON success response");
   return body;
+}
+
+/** Bound and strip control characters from text that came from upstream. */
+function clean(s: string): string {
+  return s.replace(/[\u0000-\u001f\u007f]/g, " ").slice(0, 300);
 }
 
 /** Compact default field set - keeps agent context windows lean. */
