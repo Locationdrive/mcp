@@ -104,7 +104,8 @@ Ask your AI client things like:
 - Review data is per place: there is no city- or country-wide search over
   review content. For "which places near a point have reviews mentioning X" use
   `scan_reviews` — it runs the nearby search, reads up to 40 places' review
-  histories (one API request each), and returns only the matching snippets.
+  histories (one API request each; `ld_test_` keys are capped at 10 places),
+  and returns only the matching snippets.
   Keyword matching is a coarse filter over user-submitted text: read the
   snippets before drawing conclusions.
 - Rate limits and monthly quotas match your plan; a `429` from heavy agent

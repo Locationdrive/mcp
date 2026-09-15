@@ -18,15 +18,25 @@ export default async function handler(req: any, res: any) {
     });
   }
 
-  const server = new McpServer(
-    { name: SERVER_NAME, version: VERSION },
-    { instructions: SERVER_INSTRUCTIONS },
-  );
-  registerTools(server, () => key);
+  try {
+    const server = new McpServer(
+      { name: SERVER_NAME, version: VERSION },
+      { instructions: SERVER_INSTRUCTIONS },
+    );
+    registerTools(server, () => key);
 
-  // Stateless mode: fresh transport per request, no session tracking.
-  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
-  res.on("close", () => { transport.close(); server.close(); });
-  await server.connect(transport);
-  await transport.handleRequest(req, res, req.body);
+    // Stateless mode: fresh transport per request, no session tracking.
+    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+    res.on("close", () => { transport.close(); server.close(); });
+    await server.connect(transport);
+    await transport.handleRequest(req, res, req.body);
+  } catch (err) {
+    // Never leak internals (or the caller's key) to the client; message-only to the function log.
+    console.error("mcp handler error:", err instanceof Error ? err.message : String(err));
+    if (!res.headersSent) {
+      res.status(500).json({ jsonrpc: "2.0", error: { code: -32603, message: "Internal error" }, id: null });
+    } else {
+      try { res.end(); } catch { /* already closed */ }
+    }
+  }
 }

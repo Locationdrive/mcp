@@ -188,13 +188,14 @@ export function registerTools(server: McpServer, getKey: () => string) {
         "per place. Use for 'which cafés/restaurants near X have reviews mentioning Y' — complaints, incidents, or themes " +
         "such as discrimination, harassment, hygiene, noise. Give keywords in every relevant language and spelling " +
         "(e.g. Arabic and English); matching is case-, diacritic- and alef-variant-insensitive substring matching. " +
-        "Cost: one nearby search plus one request per scanned place (≤41 API requests). Neighborhood scale only — " +
+        "Cost: one nearby search plus one request per scanned place (≤41 API requests; ld_test_ keys are capped at 10 places). " +
+        "Neighborhood scale only — " +
         "there is no city- or country-wide review search. Requires Business+ (review text). Snippets are user-submitted " +
         "opinions: read them before drawing conclusions and quote reviewers rather than labeling businesses.",
       inputSchema: {
         latitude: z.number().min(-90).max(90).describe("Latitude in decimal degrees (WGS84)"),
         longitude: z.number().min(-180).max(180).describe("Longitude in decimal degrees (WGS84)"),
-        keywords: z.array(z.string().min(2)).min(1).max(30)
+        keywords: z.array(z.string().min(2).max(200)).min(1).max(30)
           .describe("Terms to look for in review text, any language, e.g. ['racist','عنصرية','hijab','حجاب','محجبة']"),
         radius_m: z.number().int().min(50).max(100000).optional().describe("Search radius in meters (default 1500)"),
         category: z.string().optional().describe("Category filter for the nearby search, e.g. 'Restaurant' or 'Cafe'"),
