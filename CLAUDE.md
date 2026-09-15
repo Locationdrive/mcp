@@ -206,3 +206,9 @@ When tools, endpoints, or connection config change, update **all** of:
   staging-branch handoffs. Don't recreate that workaround.
 - The owner merges and publishes; never publish to npm or add a custom domain
   without being asked.
+- `.claude/settings.json` registers the ECC plugin marketplace (`affaan-m/ECC`)
+  and enables `ecc@ecc` for every session on this repo — web, desktop, and CLI
+  (owner decision, Sept 2026). ECC ships hooks on session/tool events (e.g. a
+  fact-forcing gate before the first Bash call); tune or disable them per
+  machine with `/plugin configure ecc@ecc` (`hooks_enabled`, `hook_profile`
+  minimal/standard/strict). Remove the file to drop the plugin.
