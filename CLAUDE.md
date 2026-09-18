@@ -17,8 +17,8 @@ intelligence, premium data packs). One codebase, two deployment modes:
    **`https://mcp.locationdrive.com/mcp`** (Streamable HTTP, stateless),
    authenticated per-request with `Authorization: Bearer ld_live_...`.
 
-Both modes use **the customer's own API key**, so plan gating, quotas, and
-usage metering apply exactly as for direct REST calls. This is a deliberate
+Both modes use **the customer's own API key**, so quotas and usage
+metering apply exactly as for direct REST calls. This is a deliberate
 design decision — the server adds no auth, no caching, and no rate limiting of
 its own; `api.locationdrive.com` is the enforcement point.
 
@@ -100,38 +100,40 @@ tsconfig.api.json  noEmit typecheck covering api/** + src/**.
 
 | Tool | Backing endpoint | Plan |
 |---|---|---|
-| `search_places` | `GET /v1/places/search` | Free+ |
-| `find_nearby` | `GET /v1/places/nearby` (adds `distance_m`) | Free+ |
-| `get_place_details` | `GET /v1/places/{id}` (`fields` passthrough, `*` allowed; adds `plan_note` when explicitly requested premium fields come back missing) | Free+ (premium fields Business+) |
-| `get_place_context` | `GET /v1/ai/context/{id}` (LLM-ready summary) | Free+ |
-| `get_review_history` | `GET /v1/places/{id}/reviews/summary` (merged current + historical reviews, de-duplicated, `reviews_meta`, sentiments) | **Business+** |
-| `scan_reviews` | `GET /v1/places/nearby` (≤40, ≤10 for ld_test_ keys; minimal fields) + `GET /v1/places/{id}/reviews/summary` per place; returns only matching review snippets per place + `no_match_places` | **Business+** |
-| `get_hotel_rates` | `GET /v1/places/{id}?fields=name,hotel_class,hotel_price,hotel_details,check_in_time,check_out_time` (adds `rates_note` when `hotel_details` is null) | **Business+** (hotel fields stripped below) |
-| `get_building_polygon` | `GET /v1/polygons/{id}` (`format` geojson/wkt/both) | **Starter+** |
-| `find_building_at_point` | `GET /v1/polygons/contains` | **Starter+** |
-| `brand_footprint` | `GET /v1/brands/{brand}/summary` | Free+ |
-| `data_coverage` | `/v1/countries` (no arg) or `/v1/polygons/coverage?country=XX` | Free+ |
+| `search_places` | `GET /v1/places/search` | All plans |
+| `find_nearby` | `GET /v1/places/nearby` (adds `distance_m`) | All plans |
+| `get_place_details` | `GET /v1/places/{id}` (`fields` passthrough, `*` allowed; adds `data_note` when explicitly requested fields come back missing — no data for that place, nothing is plan-stripped) | All plans |
+| `get_place_context` | `GET /v1/ai/context/{id}` (LLM-ready summary) | All plans |
+| `get_review_history` | `GET /v1/places/{id}/reviews/summary` (merged current + historical reviews, de-duplicated, `reviews_meta`, sentiments) | All plans |
+| `scan_reviews` | `GET /v1/places/nearby` (≤40, ≤10 for ld_test_ keys; minimal fields) + `GET /v1/places/{id}/reviews/summary` per place; returns only matching review snippets per place + `no_match_places` | All plans |
+| `get_hotel_rates` | `GET /v1/places/{id}?fields=name,hotel_class,hotel_price,hotel_details,check_in_time,check_out_time` (adds `rates_note` when `hotel_details` is null) | All plans |
+| `get_building_polygon` | `GET /v1/polygons/{id}` (`format` geojson/wkt/both) | All plans |
+| `find_building_at_point` | `GET /v1/polygons/contains` | All plans |
+| `brand_footprint` | `GET /v1/brands/{brand}/summary` | All plans |
+| `data_coverage` | `/v1/countries` (no arg) or `/v1/polygons/coverage?country=XX` | All plans |
 
 `SERVER_INSTRUCTIONS` (src/tools.ts) tells clients to call `data_coverage`
-first when coverage is uncertain, explains plan gating + `ld_test_` keys, states
-that review text exists on Business+ (missing fields = plan gating, never "no
-review data"), and that review data is per place (`scan_reviews` for a neighborhood; no city- or
+first when coverage is uncertain, states that every plan gets every field and
+tool (no plan gating) + `ld_test_` keys, states that review text exists in the
+data (missing fields = no data for that place, never "no review data"), and that review data is per place (`scan_reviews` for a neighborhood; no city- or
 country-wide review search).
 
 ## API truth
 
 - Base `https://api.locationdrive.com/v1`; auth `Authorization: Bearer` on
   everything except `GET /health`. `ld_test_` keys → synthetic data, no quota.
-- Plans: Free / Starter ($99/mo) / Business ($399/mo) / Enterprise.
-  Gating: `/v1/polygons/*` Starter+; premium field packs (EV charging, fuel,
-  menus, hotel rates, review intelligence) and `/v1/places/{id}/reviews/summary`
-  Business+. Fields above plan are silently stripped, not errors.
+- Plans: Free ($0, 5,000 API calls/mo since 2026-09-18) / Starter ($99/mo, 500k) /
+  Business ($399/mo, 5M) / Enterprise (custom, unlimited).
+  **No plan gating (API v8, confirmed from the deployed POI Lambda on 2026-09-18):**
+  every plan receives all fields and all endpoints; plans differ by monthly API
+  calls, results per request (20/50/100/500), radius (5/25/100/500 km), rate limit
+  (2/10/50/200 rps) and batch size. `plan_note` became `data_note` in v1.0.9.
 - **Usage counting (2026-09-18, authorizer v3.4 / POI Lambda v9):** API calls
   are counted per place returned — a list request costs the places it returns
   (its `limit`; the API's default is 20), single-place, summary and autocomplete
   requests cost 1, 429 `QUOTA_EXCEEDED` refusals are not counted, and every JSON
   response carries `api_calls_counted` (header `X-API-Calls-Counted`). Plan
-  allowances unchanged (Free 50k / Starter 500k / Business 5M per month); max
+  allowances Free 5k (since 2026-09-18) / Starter 500k / Business 5M per month; max
   results per request Free 20 / Starter 50 / Business 100 / Enterprise 500.
   Tools pass bodies through, so single-call tools surface `api_calls_counted`
   as-is; `scan_reviews` sums it (`countedCalls()` in api.ts) and the
@@ -144,7 +146,8 @@ country-wide review search).
   the neighborhood version (≤40 nearest places); country scale needs a backend
   review-search or topic-filter endpoint (roadmap: semantic search). A Sept 2026
   incident: an assistant on a sub-Business key told a user Location Drive "has
-  no review text" — that's why `plan_note` and the instructions exist.
+  no review text" — that's why the missing-field note (`data_note` since v1.0.9,
+  formerly `plan_note`) and the instructions exist.
 - Premium field shapes (backend, Aug 2026): `menu_items`
   `{sections:[{name, items:[{name, description, price:{display, amount, currency}}]}]}` ·
   `hotel_details` `{offers:[{site, url, price:{display, amount, currency}}]}`, with
@@ -158,10 +161,10 @@ country-wide review search).
   from_current, from_historical, duplicates_removed, oldest, newest} + rating,
   rating_distribution, sentiments.
 - Error mapping in `fail()` — keep these exact semantics:
-  - 403 / `FORBIDDEN` / `PLAN_REQUIRED` → "requires a higher Location Drive
-    plan … see https://locationdrive.com/pricing"
-  - 429 / `RATE_LIMITED` / `QUOTA_EXCEEDED` → "rate limit or monthly quota
-    exceeded for this API key"
+  - 403 / `FORBIDDEN` / `PLAN_REQUIRED` → "access denied for this API key
+    (inactive, revoked, or IP allowlist)" — the API has no plan gating since v8
+  - 429 / `RATE_LIMITED` / `QUOTA_EXCEEDED` → "rate limit or monthly API-call
+    allowance exceeded for this API key"
   - 401 → invalid/missing key message.
 - Live-data caveat: the production dataset is still ramping (Anguilla-only as
   of Aug 2026) — e.g. `brand_footprint("Starbucks")` legitimately returns 0.
