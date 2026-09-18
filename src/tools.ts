@@ -50,6 +50,9 @@ export const SERVER_INSTRUCTIONS =
   "Review data is per place: there is no city- or country-wide search over review content. For 'which places near a point " +
   "have reviews mentioning X' use scan_reviews (scans up to 40 nearest places, one request each, returns matching snippets); " +
   "for one place use get_review_history. " +
+  "Usage is counted per place returned: search_places and find_nearby cost one API call per result (their limit; the API's " +
+  "own default is 20), single-place and summary tools cost 1, scan_reviews costs the nearby search plus 1 per scanned place, " +
+  "and every result includes api_calls_counted — keep limit as small as the question allows. " +
   "ld_test_ keys return synthetic data without using quota.";
 
 /**
@@ -66,12 +69,13 @@ export function registerTools(server: McpServer, getKey: () => string) {
       description:
         "Search the global Location Drive POI database by name or keyword. " +
         "Returns matching businesses/places with address, coordinates, rating, hours, and contact info. " +
-        "Use for questions like 'find X in <city/country>' or when you have a business name to look up.",
+        "Use for questions like 'find X in <city/country>' or when you have a business name to look up. " +
+        "Usage: counted per place returned — limit sets the cost (default 5 here; the API's default is 20); the result includes api_calls_counted.",
       inputSchema: {
         query: z.string().min(2).describe("Name or keyword, e.g. 'Marriott' or 'coffee'"),
         country: z.string().length(2).optional().describe("ISO-2 country filter, e.g. 'US'"),
         category: z.string().optional().describe("Category filter, e.g. 'Restaurant'"),
-        limit: z.number().int().min(1).max(20).optional().describe("Max results (default 5)"),
+        limit: z.number().int().min(1).max(20).optional().describe("Max results (default 5). Each result counts as one API call."),
       },
       annotations: READ_ONLY,
     },
@@ -90,13 +94,14 @@ export function registerTools(server: McpServer, getKey: () => string) {
       title: "Find nearby places",
       description:
         "Find places around a coordinate, sorted by distance (adds distance_m to each result). " +
-        "Use for 'what is near <lat,lng>', 'restaurants around this point', or local-area exploration.",
+        "Use for 'what is near <lat,lng>', 'restaurants around this point', or local-area exploration. " +
+        "Usage: counted per place returned — limit sets the cost (default 8 here; the API's default is 20); the result includes api_calls_counted.",
       inputSchema: {
         latitude: z.number().min(-90).max(90).describe("Latitude in decimal degrees (WGS84)"),
         longitude: z.number().min(-180).max(180).describe("Longitude in decimal degrees (WGS84)"),
         radius_m: z.number().int().min(50).max(100000).optional().describe("Search radius in meters (default 1000)"),
         category: z.string().optional().describe("Category filter, e.g. 'Gas station'"),
-        limit: z.number().int().min(1).max(20).optional().describe("Max results (default 8)"),
+        limit: z.number().int().min(1).max(20).optional().describe("Max results (default 8). Each result counts as one API call."),
       },
       annotations: READ_ONLY,
     },
@@ -188,7 +193,8 @@ export function registerTools(server: McpServer, getKey: () => string) {
         "per place. Use for 'which cafés/restaurants near X have reviews mentioning Y' — complaints, incidents, or themes " +
         "such as discrimination, harassment, hygiene, noise. Give keywords in every relevant language and spelling " +
         "(e.g. Arabic and English); matching is case-, diacritic- and alef-variant-insensitive substring matching. " +
-        "Cost: one nearby search plus one request per scanned place (≤41 API requests; ld_test_ keys are capped at 10 places). " +
+        "Usage: the nearby search is counted per place returned (≤ limit) plus 1 API call per scanned place — up to 2 × limit API calls (≤ 80); " +
+        "the result reports api_calls_counted (ld_test_ keys are capped at 10 places). " +
         "Neighborhood scale only — " +
         "there is no city- or country-wide review search. Requires Business+ (review text). Snippets are user-submitted " +
         "opinions: read them before drawing conclusions and quote reviewers rather than labeling businesses.",
@@ -288,7 +294,7 @@ export function registerTools(server: McpServer, getKey: () => string) {
       description:
         "Brand intelligence summary: store counts by country, open-now count, polygon coverage, " +
         "and average rating for a retail/restaurant/hotel brand. " +
-        "Use for 'how many <brand> locations are there', competitor analysis, or market sizing.",
+        "Use for 'how many <brand> locations are there', competitor analysis, or market sizing. Counts as 1 API call (summary endpoint).",
       inputSchema: {
         brand: z.string().min(2).describe("Brand name, e.g. 'Starbucks'"),
       },
@@ -308,7 +314,7 @@ export function registerTools(server: McpServer, getKey: () => string) {
       description:
         "What data Location Drive has: per-country POI counts, and for a specific country the " +
         "building-polygon coverage percentage with grade distribution. " +
-        "Call this first when unsure whether a region is covered.",
+        "Call this first when unsure whether a region is covered. Counts as 1 API call.",
       inputSchema: {
         country: z.string().length(2).optional().describe("ISO-2 code for detailed polygon coverage; omit for the global country list"),
       },

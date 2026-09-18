@@ -11,12 +11,12 @@ apply exactly as with direct API calls.
 
 | Tool | What it does |
 |---|---|
-| `search_places` | Search the global POI database by name/keyword |
-| `find_nearby` | Distance-sorted places around a coordinate |
+| `search_places` | Search the global POI database by name/keyword — counted per place returned (`limit`, default 5) |
+| `find_nearby` | Distance-sorted places around a coordinate — counted per place returned (`limit`, default 8) |
 | `get_place_details` | Full record by ID; premium fields (menus, hotel rates, EV connectors, fuel, review text) via `fields` on Business+; `plan_note` when they are stripped |
 | `get_place_context` | LLM-ready summary + structured data (sentiment keywords, not review text) for one place |
 | `get_review_history` | Merged multi-year review text history, duplicates removed, plus sentiment summary (Business+) |
-| `scan_reviews` | Keyword scan of review text across up to 40 places near a point — matching snippets per place; neighborhood scale (Business+) |
+| `scan_reviews` | Keyword scan of review text across up to 40 places near a point — matching snippets per place; neighborhood scale; costs the nearby search + 1 per scanned place, reported as `api_calls_counted` (Business+) |
 | `get_hotel_rates` | Compare room rates across booking sites for one hotel (Business+) |
 | `get_building_polygon` | GeoJSON footprint with A–E accuracy grade (Starter+) |
 | `find_building_at_point` | Reverse lookup: which building contains this coordinate (Starter+) |
@@ -108,6 +108,12 @@ Ask your AI client things like:
   and returns only the matching snippets.
   Keyword matching is a coarse filter over user-submitted text: read the
   snippets before drawing conclusions.
+- Usage is counted in API calls, per place returned (since 2026-09-18): a list
+  tool costs one API call per result (its `limit`), single-place and summary
+  tools cost 1, and `scan_reviews` costs the nearby search plus 1 per scanned
+  place. Every tool result includes `api_calls_counted`. Plan allowances: Free
+  50,000 / Starter 500,000 / Business 5,000,000 API calls per month — see
+  https://locationdrive.com/docs#api-call-counting.
 - Rate limits and monthly quotas match your plan; a `429` from heavy agent
   usage means the key's quota is exhausted.
 - `ld_test_` keys work and return synthetic data without counting against

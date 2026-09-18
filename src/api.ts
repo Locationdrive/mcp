@@ -64,6 +64,14 @@ export function out(data: unknown) {
   return { content: [{ type: "text" as const, text: JSON.stringify(data) }] };
 }
 
+/** api_calls_counted from a JSON response body — the API calls the request was
+ *  charged (places returned for list endpoints, 1 for single-place and summary
+ *  requests). Present on every API response since 2026-09-18. */
+export function countedCalls(body: unknown): number | undefined {
+  const n = (body as any)?.api_calls_counted;
+  return typeof n === "number" && Number.isFinite(n) ? n : undefined;
+}
+
 /** Documented API error codes: FORBIDDEN (403) = plan does not include this
  *  endpoint/field; RATE_LIMITED (429) = monthly quota or rate limit exceeded.
  *  Legacy PLAN_REQUIRED / QUOTA_EXCEEDED aliases are kept as fallbacks. */

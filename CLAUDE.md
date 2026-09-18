@@ -126,6 +126,17 @@ country-wide review search).
   Gating: `/v1/polygons/*` Starter+; premium field packs (EV charging, fuel,
   menus, hotel rates, review intelligence) and `/v1/places/{id}/reviews/summary`
   Business+. Fields above plan are silently stripped, not errors.
+- **Usage counting (2026-09-18, authorizer v3.4 / POI Lambda v9):** API calls
+  are counted per place returned — a list request costs the places it returns
+  (its `limit`; the API's default is 20), single-place, summary and autocomplete
+  requests cost 1, 429 `QUOTA_EXCEEDED` refusals are not counted, and every JSON
+  response carries `api_calls_counted` (header `X-API-Calls-Counted`). Plan
+  allowances unchanged (Free 50k / Starter 500k / Business 5M per month); max
+  results per request Free 20 / Starter 50 / Business 100 / Enterprise 500.
+  Tools pass bodies through, so single-call tools surface `api_calls_counted`
+  as-is; `scan_reviews` sums it (`countedCalls()` in api.ts) and the
+  ld_test_ / list-tool defaults (5 / 8) keep agent usage small. v1.0.8 added
+  the counting notes to SERVER_INSTRUCTIONS and the list tools' descriptions.
 - There is **no cross-place search over review content** — review text
   (`reviews`, `historical_reviews`, `reviews/summary`) is per place. The
   "which places in <country> have reviews mentioning X" question is out of reach
