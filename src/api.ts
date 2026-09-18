@@ -72,16 +72,17 @@ export function countedCalls(body: unknown): number | undefined {
   return typeof n === "number" && Number.isFinite(n) ? n : undefined;
 }
 
-/** Documented API error codes: FORBIDDEN (403) = plan does not include this
- *  endpoint/field; RATE_LIMITED (429) = monthly quota or rate limit exceeded.
- *  Legacy PLAN_REQUIRED / QUOTA_EXCEEDED aliases are kept as fallbacks. */
+/** API error semantics: 401 = missing/invalid key; 403 = the key was denied
+ *  (inactive, revoked, or its IP allowlist blocks this source) — since API v8
+ *  there is no plan gating on fields or endpoints; 429 RATE_LIMITED /
+ *  QUOTA_EXCEEDED = per-second rate limit or monthly API-call allowance. */
 export function fail(e: unknown) {
   let m: string;
   if (e instanceof LDError) {
     if (e.status === 403 || e.code === "FORBIDDEN" || e.code === "PLAN_REQUIRED") {
-      m = `This data requires a higher Location Drive plan. ${e.message} — see https://locationdrive.com/pricing`;
+      m = `Access denied for this API key (inactive, revoked, or blocked by its IP allowlist). ${e.message} — check the key at https://locationdrive.com/dashboard/api-keys`;
     } else if (e.status === 429 || e.code === "RATE_LIMITED" || e.code === "QUOTA_EXCEEDED") {
-      m = `Rate limit or monthly quota exceeded for this API key. ${e.message}`;
+      m = `Rate limit or monthly API-call allowance exceeded for this API key. ${e.message}`;
     } else {
       m = `Location Drive API error ${e.status} (${e.code}): ${e.message}`;
     }

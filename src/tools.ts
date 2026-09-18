@@ -9,7 +9,7 @@ const READ_ONLY = { readOnlyHint: true, openWorldHint: true } as const;
 /** Field selection for get_hotel_rates — the Hospitality pack plus identity. */
 const HOTEL_FIELDS = "name,hotel_class,hotel_price,hotel_details,check_in_time,check_out_time";
 
-/** Premium (Business+) fields — the API silently strips them on lower plans. */
+/** Premium-pack fields — available on every plan since API v8; listed so a missing one can be explained. */
 const PREMIUM_FIELDS = new Set([
   "menu_items", "hotel_details", "hotel_price", "hotel_class",
   "ev_connectors", "ev_connector_types", "ev_network", "ev_max_power_kw", "ev_plug_count", "ev_stall_count", "ev_speed",
@@ -17,11 +17,12 @@ const PREMIUM_FIELDS = new Set([
 ]);
 
 /**
- * When explicitly requested premium fields come back missing, say why. Without this a
- * model concludes "Location Drive has no review text" when the truth is "this key's
- * plan is below Business+".
+ * When explicitly requested premium fields come back missing, say what that means.
+ * Every plan receives the full field set, so a missing field is a gap in the data
+ * for this place (no menu, rates, connectors or review text captured) — never plan
+ * gating. Without this a model concludes "Location Drive has no review text".
  */
-function withPlanNote(body: unknown, fields?: string) {
+function withDataNote(body: unknown, fields?: string) {
   if (!fields || fields.trim() === "*") return body;
   const requested = fields.split(",").map((f) => f.trim()).filter((f) => PREMIUM_FIELDS.has(f));
   if (requested.length === 0) return body;
@@ -31,10 +32,10 @@ function withPlanNote(body: unknown, fields?: string) {
   if (missing.length === 0) return body;
   return {
     ...(body as object),
-    plan_note:
-      `Requested premium field(s) not returned: ${missing.join(", ")}. Premium fields — including review text in ` +
-      "reviews / historical_reviews — exist on Business+ plans and are silently stripped below that, so this key's plan " +
-      "is most likely Free or Starter. Do not conclude the data does not exist; see https://locationdrive.com/pricing.",
+    data_note:
+      `Requested field(s) not returned: ${missing.join(", ")}. Every plan receives all fields, so nothing was stripped — ` +
+      "no data is recorded for these fields on this place (e.g. no menu, rates, EV connectors or review text captured). " +
+      "Other places may have them.",
   };
 }
 
@@ -42,11 +43,12 @@ function withPlanNote(body: unknown, fields?: string) {
 export const SERVER_INSTRUCTIONS =
   "Location Drive is a global POI database (350M+ places, graded building polygons). " +
   "Call data_coverage first when unsure whether a country/region is covered. " +
-  "Building-polygon tools need a Starter+ plan; premium fields (EV connectors, fuel prices, menus, hotel rates, review text) " +
-  "and the get_review_history / get_hotel_rates tools need Business+ — plan errors say so explicitly. " +
-  "Review text DOES exist on Business+: reviews (current crawl), historical_reviews (earlier crawls), and get_review_history " +
-  "(both merged, de-duplicated). If those fields come back missing, the key's plan is below Business+ — say that, never that " +
-  "Location Drive has no review data. get_place_context returns a summary plus review_sentiments keyword counts, not review text. " +
+  "Every plan receives the full field set and every endpoint — there is no plan gating on fields or tools; plans differ " +
+  "only by monthly API-call allowance, results per request, search radius and rate limit. " +
+  "Review text exists in the data: reviews (current crawl), historical_reviews (earlier crawls), and get_review_history " +
+  "(both merged, de-duplicated). If those fields come back missing for a place, no review text was captured for that " +
+  "place — say that, never that Location Drive has no review data. get_place_context returns a summary plus " +
+  "review_sentiments keyword counts, not review text. " +
   "Review data is per place: there is no city- or country-wide search over review content. For 'which places near a point " +
   "have reviews mentioning X' use scan_reviews (scans up to 40 nearest places, one request each, returns matching snippets); " +
   "for one place use get_review_history. " +
@@ -58,8 +60,8 @@ export const SERVER_INSTRUCTIONS =
 /**
  * Registers all Location Drive tools on an MCP server instance.
  * `getKey` resolves the customer's own API key (env var locally,
- * Authorization header remotely) — so plan gating, quotas, and usage
- * metering apply exactly as for direct API calls.
+ * Authorization header remotely) — so quotas and usage metering apply
+ * exactly as for direct API calls.
  */
 export function registerTools(server: McpServer, getKey: () => string) {
   server.registerTool(
@@ -121,15 +123,15 @@ export function registerTools(server: McpServer, getKey: () => string) {
       title: "Get place details",
       description:
         "Full record for one place by its Location Drive ID (from a previous search). " +
-        "Optionally request specific fields — including premium packs on Business+ plans: " +
+        "Optionally request specific fields — including the premium packs, available on every plan: " +
         "menu_items (full menu: sections → items with structured prices), " +
         "hotel_details (room-rate offers from multiple booking sites, with links), hotel_price, hotel_class, " +
         "ev_connectors (per-connector type, power_kw, speed, plug_count) plus ev_connector_types, ev_network, " +
         "ev_max_power_kw, ev_plug_count, ev_stall_count, ev_speed, fuel_price, " +
         "reviews (current-cycle review text), historical_reviews (review text from earlier crawl cycles), review_sentiments. " +
         "Ask for fields=reviews,historical_reviews to read what reviewers actually wrote, or use get_review_history for the " +
-        "merged, de-duplicated history. If requested premium fields are missing, the response carries a plan_note — the key's " +
-        "plan is below Business+, not a gap in the data.",
+        "merged, de-duplicated history. If requested fields are missing, the response carries a data_note: every plan receives " +
+        "all fields, so the place simply has no data recorded for them. Counts as 1 API call.",
       inputSchema: {
         place_id: z.string().describe("Location Drive place ID, e.g. 'ld_3GB7KWu3lxlI'"),
         fields: z.string().optional().describe("Comma-separated field list, or '*' for all plan-eligible fields"),
@@ -138,7 +140,7 @@ export function registerTools(server: McpServer, getKey: () => string) {
     },
     async ({ place_id, fields }) => {
       try {
-        return out(withPlanNote(await ld(getKey(), `/v1/places/${encodeURIComponent(place_id)}`, { fields }), fields));
+        return out(withDataNote(await ld(getKey(), `/v1/places/${encodeURIComponent(place_id)}`, { fields }), fields));
       } catch (e) { return fail(e); }
     },
   );
@@ -173,7 +175,7 @@ export function registerTools(server: McpServer, getKey: () => string) {
         "from_current, from_historical, duplicates_removed, oldest, newest), overall rating, rating distribution, " +
         "and a sentiment summary. This is the tool for what reviewers said about ONE place — complaints, incidents, " +
         "recurring themes, reputation trends. For 'which places near a point have reviews mentioning X' use scan_reviews " +
-        "instead; there is no city- or country-wide review search. Requires Business+.",
+        "instead; there is no city- or country-wide review search. Available on every plan; counts as 1 API call.",
       inputSchema: { place_id: z.string().describe("Location Drive place ID") },
       annotations: READ_ONLY,
     },
@@ -196,7 +198,7 @@ export function registerTools(server: McpServer, getKey: () => string) {
         "Usage: the nearby search is counted per place returned (≤ limit) plus 1 API call per scanned place — up to 2 × limit API calls (≤ 80); " +
         "the result reports api_calls_counted (ld_test_ keys are capped at 10 places). " +
         "Neighborhood scale only — " +
-        "there is no city- or country-wide review search. Requires Business+ (review text). Snippets are user-submitted " +
+        "there is no city- or country-wide review search. Available on every plan. Snippets are user-submitted " +
         "opinions: read them before drawing conclusions and quote reviewers rather than labeling businesses.",
       inputSchema: {
         latitude: z.number().min(-90).max(90).describe("Latitude in decimal degrees (WGS84)"),
@@ -227,7 +229,7 @@ export function registerTools(server: McpServer, getKey: () => string) {
       description:
         "Compare room rates across booking sites for one hotel: headline nightly rate (hotel_price), star class, " +
         "per-site offers with prices and links (hotel_details.offers), and check-in/check-out times. " +
-        "Hotel fields require Business+; on lower plans they are stripped and only the name comes back.",
+        "Available on every plan; when a hotel has no listed rates the response carries a rates_note. Counts as 1 API call.",
       inputSchema: { place_id: z.string().describe("Location Drive place ID of the hotel") },
       annotations: READ_ONLY,
     },
@@ -239,7 +241,7 @@ export function registerTools(server: McpServer, getKey: () => string) {
           return out({
             ...(body as object),
             rates_note:
-              "No room-rate data returned. hotel_* fields require a Business+ plan; on an eligible plan this means no rates are listed for this place.",
+              "No room-rate data returned: no rates are listed for this place. Every plan receives the hotel fields, so nothing was stripped.",
           });
         }
         return out(body);
@@ -253,7 +255,7 @@ export function registerTools(server: McpServer, getKey: () => string) {
       title: "Get building polygon",
       description:
         "Building footprint polygon for a place, with the A–E accuracy grade and area in m². " +
-        "Returns GeoJSON ready for maps. Requires a Starter plan or above.",
+        "Returns GeoJSON ready for maps. Available on every plan; counts as 1 API call.",
       inputSchema: {
         place_id: z.string().describe("Location Drive place ID"),
         format: z.enum(["geojson", "wkt", "both"]).optional().describe("Geometry format (default geojson)"),
@@ -273,7 +275,7 @@ export function registerTools(server: McpServer, getKey: () => string) {
       title: "Find building at point",
       description:
         "Reverse building lookup: given a coordinate, returns the building footprint that contains it " +
-        "and the business(es) inside. Location Drive's signature capability. Requires Starter plan or above.",
+        "and the business(es) inside. Location Drive's signature capability. Available on every plan; counts as 1 API call.",
       inputSchema: {
         latitude: z.number().min(-90).max(90).describe("Latitude in decimal degrees (WGS84)"),
         longitude: z.number().min(-180).max(180).describe("Longitude in decimal degrees (WGS84)"),

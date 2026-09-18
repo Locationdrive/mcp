@@ -2,7 +2,7 @@ import { ld, LDError, countedCalls } from "./api.js";
 
 /**
  * scan_reviews — the one fan-out tool. Runs the nearby search, then fetches each
- * place's merged review history (/reviews/summary, Business+) and returns only the
+ * place's merged review history (/reviews/summary) and returns only the
  * review snippets that match the caller's keywords. Neighborhood scale by design:
  * at most `limit` (≤40) places, one API request each, bounded concurrency and a
  * soft deadline that stays inside the hosted function's 60 s limit.

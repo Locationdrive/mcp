@@ -13,13 +13,13 @@ apply exactly as with direct API calls.
 |---|---|
 | `search_places` | Search the global POI database by name/keyword — counted per place returned (`limit`, default 5) |
 | `find_nearby` | Distance-sorted places around a coordinate — counted per place returned (`limit`, default 8) |
-| `get_place_details` | Full record by ID; premium fields (menus, hotel rates, EV connectors, fuel, review text) via `fields` on Business+; `plan_note` when they are stripped |
+| `get_place_details` | Full record by ID; request any field via `fields` — premium packs (menus, hotel rates, EV connectors, fuel, review text) included on every plan; `data_note` when a requested field has no data for that place |
 | `get_place_context` | LLM-ready summary + structured data (sentiment keywords, not review text) for one place |
-| `get_review_history` | Merged multi-year review text history, duplicates removed, plus sentiment summary (Business+) |
-| `scan_reviews` | Keyword scan of review text across up to 40 places near a point — matching snippets per place; neighborhood scale; costs the nearby search + 1 per scanned place, reported as `api_calls_counted` (Business+) |
-| `get_hotel_rates` | Compare room rates across booking sites for one hotel (Business+) |
-| `get_building_polygon` | GeoJSON footprint with A–E accuracy grade (Starter+) |
-| `find_building_at_point` | Reverse lookup: which building contains this coordinate (Starter+) |
+| `get_review_history` | Merged multi-year review text history, duplicates removed, plus sentiment summary |
+| `scan_reviews` | Keyword scan of review text across up to 40 places near a point — matching snippets per place; neighborhood scale; costs the nearby search + 1 per scanned place, reported as `api_calls_counted` |
+| `get_hotel_rates` | Compare room rates across booking sites for one hotel |
+| `get_building_polygon` | GeoJSON footprint with A–E accuracy grade |
+| `find_building_at_point` | Reverse lookup: which building contains this coordinate |
 | `brand_footprint` | Store counts, open-now, coverage, avg rating for a brand |
 | `data_coverage` | Per-country POI counts and polygon coverage stats |
 
@@ -93,14 +93,14 @@ Ask your AI client things like:
 
 ## Notes
 
-- Plan gating is enforced server-side: polygon tools require Starter+, and
-  premium fields (EV, fuel, menus, hotel rates, reviews) require Business+.
-  The tools return clear upgrade messages rather than empty data.
-- Review text exists on Business+ — `reviews` (current crawl),
+- Every plan receives the full field set and every endpoint (API v8): there
+  is no plan gating on fields or tools. Plans differ by monthly API-call
+  allowance, results per request, search radius and rate limit.
+- Review text exists in the data — `reviews` (current crawl),
   `historical_reviews` (earlier crawls), and `get_review_history` (both merged,
-  de-duplicated). When a lower-plan key requests them, `get_place_details`
-  returns a `plan_note` instead of silently omitting them. `get_place_context`
-  carries `review_sentiments` keyword counts, not review text.
+  de-duplicated). When a requested field comes back missing, `get_place_details`
+  returns a `data_note`: nothing was stripped, that place has no data for it.
+  `get_place_context` carries `review_sentiments` keyword counts, not review text.
 - Review data is per place: there is no city- or country-wide search over
   review content. For "which places near a point have reviews mentioning X" use
   `scan_reviews` — it runs the nearby search, reads up to 40 places' review
@@ -112,7 +112,7 @@ Ask your AI client things like:
   tool costs one API call per result (its `limit`), single-place and summary
   tools cost 1, and `scan_reviews` costs the nearby search plus 1 per scanned
   place. Every tool result includes `api_calls_counted`. Plan allowances: Free
-  50,000 / Starter 500,000 / Business 5,000,000 API calls per month — see
+  5,000 / Starter 500,000 / Business 5,000,000 API calls per month — see
   https://locationdrive.com/docs#api-call-counting.
 - Rate limits and monthly quotas match your plan; a `429` from heavy agent
   usage means the key's quota is exhausted.
