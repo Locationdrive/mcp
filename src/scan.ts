@@ -1,4 +1,4 @@
-import { ld, LDError } from "./api.js";
+import { ld, LDError, countedCalls } from "./api.js";
 
 /**
  * scan_reviews — the one fan-out tool. Runs the nearby search, then fetches each
@@ -6,6 +6,10 @@ import { ld, LDError } from "./api.js";
  * review snippets that match the caller's keywords. Neighborhood scale by design:
  * at most `limit` (≤40) places, one API request each, bounded concurrency and a
  * soft deadline that stays inside the hosted function's 60 s limit.
+ *
+ * Usage: the nearby search is counted per place returned (≤ limit) and each
+ * review-history request counts as 1, so a full scan costs up to 2 × limit API
+ * calls; the result reports the total as api_calls_counted.
  */
 
 export interface ReviewHit {
@@ -34,6 +38,7 @@ export interface ScanResult {
   places_with_matches: number;
   reviews_scanned: number;
   api_requests: number;
+  api_calls_counted: number;
   scan_limit: number;
   partial: boolean;
   keywords: string[];
@@ -141,6 +146,7 @@ export async function scanReviews(apiKey: string, opts: ScanOptions): Promise<Sc
   const places: any[] = (nearby?.data ?? nearby?.results ?? []).slice(0, limit);
 
   let apiRequests = 1;
+  let apiCallsCounted = countedCalls(nearby) ?? places.length;
   let fatal: unknown = null;
   let partial = false;
   let fetchErrors = 0;
@@ -166,6 +172,7 @@ export async function scanReviews(apiKey: string, opts: ScanOptions): Promise<Sc
         fetchErrors++;
         continue;
       }
+      apiCallsCounted += countedCalls(body) ?? 1;
       const reviews: any[] = body?.reviews ?? body?.data?.reviews ?? [];
       reviewsScanned += reviews.length;
       const snippets: ReviewHit[] = [];
@@ -200,6 +207,7 @@ export async function scanReviews(apiKey: string, opts: ScanOptions): Promise<Sc
     places_with_matches: matches.length,
     reviews_scanned: reviewsScanned,
     api_requests: apiRequests,
+    api_calls_counted: apiCallsCounted,
     scan_limit: limit,
     partial,
     keywords: kws.map((k) => k.raw),
@@ -207,6 +215,7 @@ export async function scanReviews(apiKey: string, opts: ScanOptions): Promise<Sc
     no_match_places: noMatch,
     fetch_errors: fetchErrors,
     note:
+      `Charged ${apiCallsCounted} API calls (the nearby search counts per place returned, each review fetch counts 1). ` +
       (partial ? "Time limit reached before every nearby place was scanned; results are partial. " : "") +
       (isTestKey ? `Test keys (ld_test_) scan at most ${TEST_KEY_MAX_PLACES} places per call. ` : "") +
       `Scanned ${done.length} of the nearest places only — this is a neighborhood scan, not a city- or country-wide search. ` +
