@@ -32,12 +32,15 @@ and footer link must stay in sync with this repo (see "Sync points").
 src/version.ts     VERSION + SERVER_NAME ("locationdrive").
                    VERSION must ALWAYS equal package.json "version" — bump both.
 src/api.ts         ld() fetch client (Bearer auth, User-Agent locationdrive-mcp/<ver>,
-                   default 20 s timeout — LOCATIONDRIVE_TIMEOUT_MS — surfacing as LDError
-                   504 UPSTREAM_TIMEOUT; raw non-JSON upstream bodies are never relayed),
+                   default 10 s timeout — LOCATIONDRIVE_TIMEOUT_MS — surfacing as LDError
+                   504 UPSTREAM_TIMEOUT; raw non-JSON upstream bodies are never relayed;
+                   fills api_calls_counted from the X-API-Calls-Counted header when the
+                   body lacks it), ldList() (list fetch with max_results auto-pagination:
+                   DEFAULT_LIST_LIMIT 20, MAX_RESULTS_CAP 1000, sums api_calls_counted),
                    SLIM_FIELDS (compact default field list for list results),
                    out() → single-line JSON.stringify content block,
                    fail() → isError:true with plan-aware messages (see Error mapping).
-src/tools.ts       registerTools(server, getKey) — all 11 tools; SERVER_INSTRUCTIONS
+src/tools.ts       registerTools(server, getKey) — all 12 tools; SERVER_INSTRUCTIONS
                    string (injected as server instructions at construction).
 src/scan.ts        scanReviews(): the one fan-out tool — nearby search, then
                    /reviews/summary per place (≤40, ≤10 for ld_test_ keys; concurrency 6,
@@ -77,31 +80,39 @@ tsconfig.api.json  noEmit typecheck covering api/** + src/**.
 - Tool results go through `out()` (compact JSON, no pretty-printing — token
   economy for the calling model) and errors through `fail()` (returns
   `isError: true`, never throws to the transport).
-- List tools default to `SLIM_FIELDS` and cap `limit` at 20 — full records are
-  fetched per-ID via `get_place_details`. Keep responses small. `scan_reviews`
-  is the one deliberate exception: it fans out to ≤40 review fetches per call
-  and returns only matching snippets — keep it bounded (limit ≤40, concurrency
-  6, soft deadline inside Vercel's 60 s).
+- List tools (`search_places`, `find_nearby`, `brand_locations`) default to
+  `SLIM_FIELDS` and `limit` 20 (`DEFAULT_LIST_LIMIT`) — the API's own default —
+  and never send more unless the caller sets `limit` (schema allows up to 500;
+  the plan caps it server-side). `max_results` (≤ 1,000) goes through `ldList()`,
+  which pages until it has enough, and reports the summed `api_calls_counted`.
+  Full records are fetched per-ID via `get_place_details`. Keep responses small.
+  Every tool description states its cost class ("Cost: limit per page" or
+  "Cost: 1 API call"). `scan_reviews` is the one deliberate exception: it fans
+  out to ≤40 review fetches per call and returns only matching snippets — keep
+  it bounded (limit ≤40, concurrency 6, soft deadline inside Vercel's 60 s).
 - Hardening baseline (v1.0.7, from the Sept 2026 security audit): every upstream
   call has a timeout; raw non-JSON upstream bodies never reach the model;
   `scan_reviews` is bounded per review and capped at 10 places for `ld_test_`
   keys; `api/mcp.ts` never leaks errors. Still open for the owner: operator-side
   rate limiting of `/api/mcp` (audit finding H2) is a Vercel Firewall rule, not
   code — in code the caller's plan limits remain the only backstop.
-- Only **documented** API endpoints (the 24 in the website docs). Undocumented
-  paths (e.g. `/v1/autocomplete`) were removed once already — don't reintroduce.
+- Only **documented** API endpoints (the 25 in the website docs — `GET
+  /v1/autocomplete` became documented on 2026-09-19; it still has no MCP tool
+  because per-keystroke type-ahead has no agent use). An undocumented path was
+  removed once already — don't add one.
 - No secrets in the repo, ever: keys appear only as `ld_live_YOUR_KEY`
   placeholders. The one real key pasted in an early smoke test was ordered rotated.
 - No references to `ahmedmaher1` anywhere (repo was transferred from
   `ahmedmaher1/locationdrive-mcp` → `Locationdrive/mcp`; all metadata, links,
   and pages point at the org).
 
-## The 11 tools
+## The 12 tools
 
 | Tool | Backing endpoint | Plan |
 |---|---|---|
 | `search_places` | `GET /v1/places/search` | All plans |
 | `find_nearby` | `GET /v1/places/nearby` (adds `distance_m`) | All plans |
+| `brand_locations` | `GET /v1/brands/{brand}/locations` (added in 1.0.10; `country?`, `limit`, `max_results`) | All plans |
 | `get_place_details` | `GET /v1/places/{id}` (`fields` passthrough, `*` allowed; adds `data_note` when explicitly requested fields come back missing — no data for that place, nothing is plan-stripped) | All plans |
 | `get_place_context` | `GET /v1/ai/context/{id}` (LLM-ready summary) | All plans |
 | `get_review_history` | `GET /v1/places/{id}/reviews/summary` (merged current + historical reviews, de-duplicated, `reviews_meta`, sentiments) | All plans |
@@ -127,18 +138,26 @@ country-wide review search).
   **No plan gating (API v8, confirmed from the deployed POI Lambda on 2026-09-18):**
   every plan receives all fields and all endpoints; plans differ by monthly API
   calls, results per request (20/50/100/500), radius (5/25/100/500 km), rate limit
-  (2/10/50/200 rps) and batch size. `plan_note` became `data_note` in v1.0.9.
-- **Usage counting (2026-09-18, authorizer v3.4 / POI Lambda v9):** API calls
-  are counted per place returned — a list request costs the places it returns
-  (its `limit`; the API's default is 20), single-place, summary and autocomplete
-  requests cost 1, 429 `QUOTA_EXCEEDED` refusals are not counted, and every JSON
-  response carries `api_calls_counted` (header `X-API-Calls-Counted`). Plan
-  allowances Free 5k (since 2026-09-18) / Starter 500k / Business 5M per month; max
-  results per request Free 20 / Starter 50 / Business 100 / Enterprise 500.
-  Tools pass bodies through, so single-call tools surface `api_calls_counted`
-  as-is; `scan_reviews` sums it (`countedCalls()` in api.ts) and the
-  ld_test_ / list-tool defaults (5 / 8) keep agent usage small. v1.0.8 added
-  the counting notes to SERVER_INSTRUCTIONS and the list tools' descriptions.
+  and batch size; rps figures (2/10/50/200) are fair-use guidance, not a
+  limiter — the API has no `RATE_LIMITED` code. `plan_note` became `data_note` in v1.0.9.
+- **Usage counting (authorizer v3.5.3 / POI Lambda v10.8, live 2026-09-19):**
+  the count is fixed from the request when it is authorized — GET list endpoints
+  (search, nearby, bbox, brands/{b}/locations, polygons/nearby, polygons/bbox) are
+  charged their `limit` (default 20, capped at the plan's results per request)
+  *whatever they return*; POST body endpoints (within, batch, polygons/batch) the
+  plan's results per request; single-place, summary, match, ai/context,
+  polygons/{id}, contains and autocomplete 1; `/health` uncounted; a 4xx still
+  counts; 429 `QUOTA_EXCEEDED` refusals are not counted. Every 200 body carries
+  `api_calls_counted` and every authenticated response the `X-API-Calls-Counted`
+  header (`ld()` copies it into the body when absent). `X-Api-Version`,
+  `X-Auth-Version`, `X-Units-Reserved` are internal — never document them. Plan
+  allowances Free 5k / Starter 500k / Business 5M per month; max results per
+  request 20 / 50 / 100 / 500. Single-call tools pass bodies through; `ldList()`
+  and `scan_reviews` sum `api_calls_counted` (`countedCalls()` in api.ts). All
+  plans receive all 98 fields (47 Core · 16 Advanced · 20 Premium · 15 added in
+  v8; the website's `scripts/check_api.py` is the regression test). v1.0.8 added
+  the counting notes; v1.0.10 moved list defaults to 20, added `max_results`,
+  `brand_locations`, the header fallback and the 10 s timeout.
 - There is **no cross-place search over review content** — review text
   (`reviews`, `historical_reviews`, `reviews/summary`) is per place. The
   "which places in <country> have reviews mentioning X" question is out of reach
@@ -163,8 +182,8 @@ country-wide review search).
 - Error mapping in `fail()` — keep these exact semantics:
   - 403 / `FORBIDDEN` / `PLAN_REQUIRED` → "access denied for this API key
     (inactive, revoked, or IP allowlist)" — the API has no plan gating since v8
-  - 429 / `RATE_LIMITED` / `QUOTA_EXCEEDED` → "rate limit or monthly API-call
-    allowance exceeded for this API key"
+  - 429 / `QUOTA_EXCEEDED` (the legacy `RATE_LIMITED` code is still mapped) →
+    "monthly API-call allowance exceeded … the refused request was not counted"
   - 401 → invalid/missing key message.
 - Live-data caveat: the production dataset is still ramping (Anguilla-only as
   of Aug 2026) — e.g. `brand_footprint("Starbucks")` legitimately returns 0.

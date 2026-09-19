@@ -7,7 +7,7 @@ import { ld, LDError, countedCalls } from "./api.js";
  * at most `limit` (≤40) places, one API request each, bounded concurrency and a
  * soft deadline that stays inside the hosted function's 60 s limit.
  *
- * Usage: the nearby search is counted per place returned (≤ limit) and each
+ * Usage: the nearby search is counted as its limit (default 20) and each
  * review-history request counts as 1, so a full scan costs up to 2 × limit API
  * calls; the result reports the total as api_calls_counted.
  */
@@ -146,7 +146,7 @@ export async function scanReviews(apiKey: string, opts: ScanOptions): Promise<Sc
   const places: any[] = (nearby?.data ?? nearby?.results ?? []).slice(0, limit);
 
   let apiRequests = 1;
-  let apiCallsCounted = countedCalls(nearby) ?? places.length;
+  let apiCallsCounted = countedCalls(nearby) ?? limit;   // the nearby search is charged its limit
   let fatal: unknown = null;
   let partial = false;
   let fetchErrors = 0;
@@ -215,7 +215,7 @@ export async function scanReviews(apiKey: string, opts: ScanOptions): Promise<Sc
     no_match_places: noMatch,
     fetch_errors: fetchErrors,
     note:
-      `Charged ${apiCallsCounted} API calls (the nearby search counts per place returned, each review fetch counts 1). ` +
+      `Charged ${apiCallsCounted} API calls (the nearby search counts as its limit, each review fetch counts 1). ` +
       (partial ? "Time limit reached before every nearby place was scanned; results are partial. " : "") +
       (isTestKey ? `Test keys (ld_test_) scan at most ${TEST_KEY_MAX_PLACES} places per call. ` : "") +
       `Scanned ${done.length} of the nearest places only — this is a neighborhood scan, not a city- or country-wide search. ` +

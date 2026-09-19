@@ -1,6 +1,6 @@
 # Location Drive MCP Server
 
-> The official Model Context Protocol (MCP) server for Location Drive, the global point-of-interest data platform (350M+ verified places in 250+ countries and territories, 120M+ building polygons graded A–E, 80+ structured fields, 5M daily delta updates). It gives Claude, ChatGPT, Cursor, and any MCP-capable client 11 read-only tools for place search, proximity, building footprints, brand intelligence, LLM-ready place context, multi-year review history, neighborhood review scanning, and hotel rate comparison — hosted at https://mcp.locationdrive.com/mcp or run locally via `npx -y @locationdrive/mcp`.
+> The official Model Context Protocol (MCP) server for Location Drive, the global point-of-interest data platform (350M+ verified places in 250+ countries and territories, 120M+ building polygons graded A–E, 98 structured fields, 5M daily delta updates). It gives Claude, ChatGPT, Cursor, and any MCP-capable client 12 read-only tools for place search, proximity, brand store lists, building footprints, brand intelligence, LLM-ready place context, multi-year review history, neighborhood review scanning, and hotel rate comparison — hosted at https://mcp.locationdrive.com/mcp or run locally via `npx -y @locationdrive/mcp`.
 
 The server is named `locationdrive` and is read-only by design. Both modes use
 the customer's own Location Drive API key, so quotas and usage
@@ -10,7 +10,7 @@ enforcement point. Source: https://github.com/locationdrive/mcp (TypeScript,
 MIT). The full platform summary for LLMs lives at
 https://locationdrive.com/llms.txt.
 
-Last updated: 2026-09-11.
+Last updated: 2026-09-19.
 
 ## Connect — hosted (no install)
 
@@ -64,33 +64,33 @@ JSON-configured clients (Claude Desktop and similar):
 }
 ```
 
-## The 11 tools
+## The 12 tools (server version 1.0.10)
 
 Each tool wraps a documented REST endpoint of `https://api.locationdrive.com/v1`:
 
-- `search_places(query, country?, category?, limit≤20)` — search the global POI database by name or keyword; returns businesses with address, coordinates, rating, hours, contact info. Counted per place returned — `limit` sets the cost (default 5; the API's default is 20) and the result includes `api_calls_counted`. Backs `GET /v1/places/search`. Free plan and above.
-- `find_nearby(latitude, longitude, radius_m 50–100000?, category?, limit≤20)` — places around a coordinate, distance-sorted with `distance_m` added. Counted per place returned (default 8); the result includes `api_calls_counted`. Backs `GET /v1/places/nearby`. Free+.
-- `get_place_details(place_id, fields?)` — full record for one place; `fields` takes a comma-separated list or `*` for all fields. Premium-pack fields, included on every plan: `menu_items` (full menu as sections → items with structured prices), `hotel_details` (room-rate offers from multiple booking sites with links), `hotel_price`, `hotel_class`, `ev_connectors` (per-connector type, power_kw, speed, plug_count) plus `ev_connector_types`, `ev_network`, `ev_max_power_kw`, `ev_plug_count`, `ev_stall_count`, `ev_speed`, `fuel_price`, `reviews` (current-cycle review text), `historical_reviews` (review text from earlier crawls), `review_sentiments`. Backs `GET /v1/places/{id}`. If explicitly requested fields come back missing, the response carries a `data_note`: that place has no data recorded for them (nothing is stripped by plan).
-- `get_place_context(place_id)` — LLM-ready context: a natural-language summary plus structured data including `review_sentiments` keyword counts (not review text), built for grounding answers about a specific business. Prefer it to describe or reason about a place overall; for what reviewers wrote, use get_review_history. Backs `GET /v1/ai/context/{id}`. Free+.
-- `get_review_history(place_id)` — merged multi-year review text history, duplicates removed: current and historical reviews newest first, each tagged `source: "current"|"historical"`, with `reviews_meta` (unique_total, from_current, from_historical, duplicates_removed, oldest, newest), overall rating, rating distribution, and a sentiment summary. Backs `GET /v1/places/{id}/reviews/summary`. Every plan; 1 API call.
-- `scan_reviews(latitude, longitude, keywords[], radius_m?, category?, limit≤40, max_snippets_per_place?)` — keyword scan of review text across the nearest places: runs the nearby search, fetches each place's merged review history, and returns only the matching snippets per place (with rating, date, source) plus the scanned places that had no match. Matching is case-, diacritic-, and alef-variant-insensitive, so pass keywords in every relevant language, e.g. `["racist","عنصرية","hijab","حجاب","محجبة"]`. Cost: the nearby search is counted per place returned (≤ limit) plus 1 API call per scanned place — up to 2 × limit API calls (≤ 80), reported as `api_calls_counted`; ld_test_ keys ≤ 10 places. Neighborhood scale only. Every plan.
-- `get_hotel_rates(place_id)` — compare room rates across booking sites for one hotel: headline nightly rate, star class, per-site offers with prices and links, check-in/check-out times. Backs `GET /v1/places/{id}` with the Hospitality fields. Every plan; when a hotel has no listed rates the response carries a `rates_note`.
-- `get_building_polygon(place_id, format geojson|wkt|both?)` — building footprint with A–E accuracy grade and area in m², GeoJSON ready for maps. Backs `GET /v1/polygons/{id}`. Every plan; 1 API call.
-- `find_building_at_point(latitude, longitude)` — reverse building lookup: the footprint containing a coordinate and the business(es) inside. Location Drive's signature capability. Backs `GET /v1/polygons/contains`. Every plan; 1 API call.
-- `brand_footprint(brand)` — brand intelligence summary: store counts by country, open-now count, polygon coverage, average rating. For market sizing and competitor analysis. Counts as 1 API call (summary endpoint). Backs `GET /v1/brands/{brand}/summary`. Free+.
-- `data_coverage(country?)` — per-country POI counts, or detailed polygon coverage with grade distribution for one ISO-2 country. Call this first when unsure whether a region is covered. Counts as 1 API call. Backs `GET /v1/countries` / `GET /v1/polygons/coverage`. Free+.
+- `search_places(query, country?, category?, limit?, max_results?)` — search the global POI database by name or keyword, ranked by prominence for general terms and by similarity for specific names (typos and partial names still match); returns businesses with address, coordinates, rating, hours, contact info. Cost: `limit` API calls per page (default 20, charged whatever the page returns); `max_results` (≤ 1,000) pages automatically and the result's `api_calls_counted` is the summed total. Backs `GET /v1/places/search`. Every plan.
+- `find_nearby(latitude, longitude, radius_m 50–500000?, category?, limit?, max_results?)` — places around a coordinate, distance-sorted with `distance_m` added. Cost: `limit` per page (default 20); `max_results` auto-pages. Backs `GET /v1/places/nearby`. Every plan.
+- `brand_locations(brand, country?, limit?, max_results?)` — every location of a brand, one ISO-2 country or global, as compact records with the total. Cost: `limit` per page (default 20); `max_results` auto-pages. Backs `GET /v1/brands/{brand}/locations`. Every plan.
+- `get_place_details(place_id, fields?)` — full record for one place; `fields` takes a comma-separated list or `*` for all 98 fields (default: the 36 core fields). Premium-pack fields, included on every plan: `menu_items` (full menu as sections → items with structured prices), `hotel_details` (room-rate offers from multiple booking sites with links), `hotel_price`, `hotel_class`, `ev_connectors` (per-connector type, power_kw, speed, plug_count) plus `ev_connector_types`, `ev_network`, `ev_max_power_kw`, `ev_plug_count`, `ev_stall_count`, `ev_speed`, `fuel_price`, `reviews` (current-cycle review text), `historical_reviews` (review text from earlier crawls), `review_sentiments`. Backs `GET /v1/places/{id}`. Cost: 1. If explicitly requested fields come back missing, the response carries a `data_note`: that place has no data recorded for them (nothing is stripped by plan).
+- `get_place_context(place_id)` — LLM-ready context: a natural-language summary plus structured data including `review_sentiments` keyword counts (not review text), built for grounding answers about a specific business. Prefer it to describe or reason about a place overall; for what reviewers wrote, use get_review_history. Backs `GET /v1/ai/context/{id}`. Cost: 1.
+- `get_review_history(place_id)` — merged multi-year review text history, duplicates removed: current and historical reviews newest first, each tagged `source: "current"|"historical"`, with `reviews_meta` (unique_total, from_current, from_historical, duplicates_removed, oldest, newest), overall rating, rating distribution, and a sentiment summary. Backs `GET /v1/places/{id}/reviews/summary`. Every plan. Cost: 1.
+- `scan_reviews(latitude, longitude, keywords[], radius_m?, category?, limit≤40, max_snippets_per_place?)` — keyword scan of review text across the nearest places: runs the nearby search, fetches each place's merged review history, and returns only the matching snippets per place (with rating, date, source) plus the scanned places that had no match. Matching is case-, diacritic-, and alef-variant-insensitive, so pass keywords in every relevant language, e.g. `["racist","عنصرية","hijab","حجاب","محجبة"]`. Cost: the nearby search is charged its limit (default 20) plus 1 API call per scanned place — up to 2 × limit API calls (≤ 80), reported as `api_calls_counted`; ld_test_ keys ≤ 10 places. Neighborhood scale only. Every plan.
+- `get_hotel_rates(place_id)` — compare room rates across booking sites for one hotel: headline nightly rate, star class, per-site offers with prices and links, check-in/check-out times. Backs `GET /v1/places/{id}` with the Hospitality fields. Every plan; Cost: 1; when a hotel has no listed rates the response carries a `rates_note`.
+- `get_building_polygon(place_id, format geojson|wkt|both?)` — building footprint with A–E accuracy grade and area in m², GeoJSON ready for maps. Backs `GET /v1/polygons/{id}`. Every plan. Cost: 1.
+- `find_building_at_point(latitude, longitude)` — reverse building lookup: the footprint containing a coordinate and the business(es) inside. Location Drive's signature capability. Backs `GET /v1/polygons/contains`. Every plan. Cost: 1.
+- `brand_footprint(brand)` — brand intelligence summary: store counts by country, open-now count, polygon coverage, average rating. For market sizing and competitor analysis; for the stores themselves use brand_locations. Cost: 1 (summary endpoint). Backs `GET /v1/brands/{brand}/summary`. Every plan.
+- `data_coverage(country?)` — per-country POI counts, or detailed polygon coverage with grade distribution for one ISO-2 country. Call this first when unsure whether a region is covered. Cost: 1. Backs `GET /v1/countries` / `GET /v1/polygons/coverage`. Every plan.
 
 ## Behavior, limits, and errors
 
 - Every tool is annotated read-only; there are no write tools.
-- Usage is counted per place returned (since 2026-09-18): list tools cost one API call per result (their `limit`), single-place and summary tools cost 1, `scan_reviews` costs the nearby search plus 1 per scanned place, and every tool result includes `api_calls_counted`. Plan allowances: Free 5,000 / Starter 500,000 / Business 5,000,000 API calls per month; max results per request Free 20 / Starter 50 / Business 100 / Enterprise 500. Rule and per-endpoint table: https://locationdrive.com/docs#api-call-counting
+- All plans receive all 98 fields. Usage is counted per place returned: list tools cost their limit (default 20); single-place and summary tools cost 1. Free keys: 5,000 API calls/month, 20 results per call. A list request is charged its `limit` whatever the page returns (default 20, capped at the plan's results per request), so the list tools never send more than 20 unless the caller sets `limit`; `max_results` (≤ 1,000) pages automatically and the result's `api_calls_counted` is the summed cost. `scan_reviews` costs the nearby search plus 1 per scanned place. Every tool result includes `api_calls_counted` (from the response body, or the `X-API-Calls-Counted` header when the body lacks it). Plan allowances: Free 5,000 / Starter 500,000 / Business 5,000,000 API calls per month; max results per request Free 20 / Starter 50 / Business 100 / Enterprise 500. Rule and per-endpoint table: https://locationdrive.com/docs#api-call-counting
 - Review text is per place. `reviews` (current crawl) and `historical_reviews` (earlier crawls) are fields on `get_place_details` (every plan); `get_review_history` returns both merged and de-duplicated. There is no city- or country-wide search over review content — `scan_reviews` covers a neighborhood (up to 40 places, one request each); beyond that, the question needs a backend review-search endpoint (roadmap).
 - Every plan receives all fields. When explicitly requested fields are missing, `get_place_details` adds a `data_note`: that place has no data recorded for them — never conclude that Location Drive has no review data in general.
-- List tools return compact records (a slim default field set) and cap at 20 results — fetch full records per ID with `get_place_details`. Results are compact single-line JSON for token economy.
-- There is no plan gating on tools or fields (API v8): every plan receives every field and endpoint. Plans differ by monthly API-call allowance (Free 5,000 / Starter 500,000 / Business 5,000,000 / Enterprise unlimited), results per request (20 / 50 / 100 / 500), search radius (5 / 25 / 100 / 500 km) and rate limit (2 / 10 / 50 / 200 req/s).
-- Error mapping: 401 → invalid or missing API key; 403 → the key was denied (inactive, revoked, or blocked by its IP allowlist); 429 (`RATE_LIMITED` / `QUOTA_EXCEEDED`) → the key's rate limit or monthly quota is exhausted. Errors come back as MCP tool errors with those messages, never transport failures.
+- List tools return compact records (a slim default field set) — fetch full records per ID with `get_place_details`. Results are compact single-line JSON for token economy.
+- There is no plan gating on tools or fields (API v8): every plan receives every field and endpoint. Plans differ by monthly API-call allowance (Free 5,000 / Starter 500,000 / Business 5,000,000 / Enterprise unlimited), results per request (20 / 50 / 100 / 500) and search radius (5 / 25 / 100 / 500 km); requests per second (2 / 10 / 50 / 200) are fair-use guidance, not a per-key limiter.
+- Error mapping: 401 → invalid or missing API key; 403 → the key was denied (inactive, revoked, or blocked by its IP allowlist); 429 `QUOTA_EXCEEDED` → the key's monthly allowance is exhausted (the refused request is not counted; resets on the 1st at 00:00 UTC). Errors come back as MCP tool errors with those messages, never transport failures. Upstream calls time out after 10 s.
 - `ld_test_` keys work in both modes: synthetic data, zero quota use — ideal for trying the integration, demos, and CI.
-- Rate limits and monthly quotas match the key's plan (Free 2 req/s and 5,000 API calls/mo up to Enterprise 200 req/s, unlimited). Heavy agent usage returning 429 means the key's quota is exhausted, not a server fault.
 
 ## Example prompts
 
@@ -98,6 +98,7 @@ Each tool wraps a documented REST endpoint of `https://api.locationdrive.com/v1`
 - "Find restaurants within 1 km of 18.2170, -63.0578."
 - "Which building sits at 18.2168, -63.0581, and what's its accuracy grade?"
 - "How many Starbucks locations are there worldwide, by country?"
+- "List the Starbucks stores in Anguilla."
 - "Compare room rates for this hotel across booking sites."
 - "How have this restaurant's reviews changed over the past few years?"
 - "Which cafés within 1.5 km of 30.0289, 31.4910 have reviews mentioning racism or hijab (عنصرية، حجاب)?"
@@ -113,11 +114,11 @@ https://locationdrive.com/pricing.
 ## Docs
 
 - [MCP server docs](https://locationdrive.com/docs#mcp): setup for hosted and local modes on the main site.
-- [Platform llms.txt](https://locationdrive.com/llms.txt): the full LLM-facing summary — all 24 REST endpoints, field packs, plan caps, pricing, delivery methods.
+- [Platform llms.txt](https://locationdrive.com/llms.txt): the full LLM-facing summary — all 25 REST endpoints, the 98 fields, plan caps, pricing, delivery methods.
 - [Quick Start](https://locationdrive.com/docs#quick-start): first API call in minutes.
 - [Authentication](https://locationdrive.com/docs#authentication): Bearer keys, ld_live_ vs ld_test_.
 - [REST API reference](https://locationdrive.com/docs#rest-api): every endpoint the tools are built on, including the reviews/summary response.
-- [Field reference](https://locationdrive.com/docs#field-reference): exact shapes of menu_items, hotel_details, ev_connectors, historical_reviews.
+- [Field reference](https://locationdrive.com/docs#field-reference): all 98 fields with the exact shapes of menu_items, hotel_details, ev_connectors, historical_reviews.
 - [GitHub repository](https://github.com/locationdrive/mcp): source, issues, and development setup.
 - [@locationdrive/mcp on npm](https://www.npmjs.com/package/@locationdrive/mcp): the local stdio package.
 
