@@ -1,6 +1,6 @@
 # Location Drive MCP Server
 
-> The official Model Context Protocol (MCP) server for Location Drive, the global point-of-interest data platform (350M+ verified places in 250+ countries and territories, 120M+ building polygons graded A–E, 98 structured fields, 5M daily delta updates). It gives Claude, ChatGPT, Cursor, and any MCP-capable client 12 read-only tools for place search, proximity, brand store lists, building footprints, brand intelligence, LLM-ready place context, multi-year review history, neighborhood review scanning, and hotel rate comparison — hosted at https://mcp.locationdrive.com/mcp or run locally via `npx -y @locationdrive/mcp`.
+> The official Model Context Protocol (MCP) server for Location Drive, the global point-of-interest data platform (350M+ verified places in 250+ countries and territories, 300M+ building polygons graded A–E, 98 structured fields, 5M daily delta updates). It gives Claude, ChatGPT, Cursor, and any MCP-capable client 12 read-only tools for place search, proximity, brand store lists, building footprints, brand intelligence, LLM-ready place context, multi-year review history, neighborhood review scanning, and hotel rate comparison — hosted at https://mcp.locationdrive.com/mcp or run locally via `npx -y @locationdrive/mcp`.
 
 The server is named `locationdrive` and is read-only by design. Both modes use
 the customer's own Location Drive API key, so quotas and usage
