@@ -7,8 +7,9 @@ account). Read fully before editing; it encodes decisions already made.
 ## What this repo is
 
 The official **Model Context Protocol server** for the Location Drive API
-(global POI database: 350M+ places, graded A–E building polygons, brand
-intelligence, premium data packs). One codebase, two deployment modes:
+(global POI database: 307.8M places across 250 countries and territories,
+254.2M A–E graded building polygons, brand intelligence, premium data packs).
+One codebase, two deployment modes:
 
 1. **Local stdio** — published to npm as **`@locationdrive/mcp`**
    (bin: `locationdrive-mcp` → `dist/stdio.js`), run via
@@ -188,6 +189,33 @@ country-wide review search).
 - Live-data caveat: the production dataset is still ramping (Anguilla-only as
   of Aug 2026) — e.g. `brand_footprint("Starbucks")` legitimately returns 0.
   That is data coverage, not a bug.
+
+## Canonical figures (owner decision 2026-09-26 — audited, publish these)
+
+Computed from the production database, primary category only, so they are
+floors. The website repo's CLAUDE.md "Canonical product facts" table is the full
+truth; these are the figures this repo's public surfaces (README, landing page,
+`public/llms.txt`, `SERVER_INSTRUCTIONS`) may cite:
+
+- **307.8M places** (307,791,192) · **250** countries and territories (exactly
+  250) · **254.2M** building polygons (82.6% of places), graded A–E.
+- **20M+ restaurants** · **31M+ food & drink** places · **6.4M+ places to stay**
+  · **2.9M+ hotels** (1,018,974 with multi-site room rates) · **2,037,712**
+  places with structured menus · **589,878** EV charging stations with
+  connector-level detail · **1.8M** brand-linked locations.
+- Regional split: Asia 163.2M · Europe 54.3M · North America 36.2M · LatAm &
+  Caribbean 28.0M · Africa 12.8M · Middle East 9.9M · Oceania 2.9M.
+- Cadence: "5M+ records updated daily in our internal refresh; a full global
+  update of the entire dataset published monthly." Never claim daily deltas are
+  delivered to customers.
+- Availability: "built on AWS infrastructure designed for 99.99% availability";
+  a contractual SLA percentage exists only in Enterprise agreements.
+- Free positioning: "the full product, limited by volume."
+
+**Historical bugs to never reintroduce:** 350M+ POIs, 300M+ polygons, 120M+
+polygons, "250+ countries", 32M+ restaurants, 6M+ hotels, 3M+ hotels, "5M daily
+delta updates" as a customer-facing delivery promise, a contractual SLA on a
+self-serve tier.
 
 ## Build, test, release
 
