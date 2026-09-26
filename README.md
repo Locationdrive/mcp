@@ -7,6 +7,9 @@ prices, full menus, multi-site hotel rates, multi-year review history) — using
 your own Location Drive API key, so your plan, quotas, and usage dashboard
 apply exactly as with direct API calls.
 
+The dataset: 307.8M places across 250 countries and territories, 254.2M A–E
+graded building polygons, 97 structured fields on every plan — Free included.
+
 ## Tools
 
 | Tool | What it does | Cost |
@@ -14,7 +17,7 @@ apply exactly as with direct API calls.
 | `search_places` | Search the global POI database by name/keyword — ranked by prominence for general terms, by similarity for specific names | `limit` per page (default 20); `max_results` auto-pages and sums the cost |
 | `find_nearby` | Distance-sorted places around a coordinate (adds `distance_m`) | `limit` per page (default 20); `max_results` auto-pages |
 | `brand_locations` | Every location of a brand — one country or global — with the total | `limit` per page (default 20); `max_results` auto-pages |
-| `get_place_details` | Full record by ID; request any of the 98 fields via `fields` — premium packs (menus, hotel rates, EV connectors, fuel, review text) included on every plan; `data_note` when a requested field has no data for that place | 1 |
+| `get_place_details` | Full record by ID; request any of the 97 fields via `fields` — premium packs (menus, hotel rates, EV connectors, fuel, review text) included on every plan; `data_note` when a requested field has no data for that place | 1 |
 | `get_place_context` | LLM-ready summary + structured data (sentiment keywords, not review text) for one place | 1 |
 | `get_review_history` | Merged multi-year review text history, duplicates removed, plus sentiment summary | 1 |
 | `scan_reviews` | Keyword scan of review text across up to 40 places near a point — matching snippets per place; neighborhood scale | the nearby search (its `limit`) + 1 per scanned place, reported as `api_calls_counted` |
@@ -24,7 +27,7 @@ apply exactly as with direct API calls.
 | `brand_footprint` | Store counts, open-now, coverage, avg rating for a brand | 1 (summary) |
 | `data_coverage` | Per-country POI counts and polygon coverage stats | 1 |
 
-All plans receive all 98 fields. Usage is counted per place returned: list
+All plans receive all 97 fields. Usage is counted per place returned: list
 tools cost their limit (default 20); single-place and summary tools cost 1.
 Free keys: 5,000 API calls/month, 20 results per call. A list request is
 charged its `limit` whatever it returns, so the list tools never send more
@@ -91,18 +94,18 @@ claude mcp add --transport http locationdrive https://mcp.locationdrive.com/mcp 
 
 Ask your AI client things like:
 
-- *"What data coverage does Location Drive have for Anguilla?"*
+- *"What data coverage does Location Drive have for Japan?"*
 - *"Find restaurants within 1 km of 18.2170, -63.0578."*
 - *"Which building sits at 18.2168, -63.0581, and what's its accuracy grade?"*
 - *"How many Starbucks locations are there worldwide, by country?"*
-- *"List the Starbucks stores in Anguilla."*
+- *"List the Starbucks stores in the US."*
 - *"Compare room rates for this hotel across booking sites."*
 - *"How have this restaurant's reviews changed over the past few years?"*
 - *"Which cafés within 1.5 km of 30.0289, 31.4910 have reviews mentioning racism or hijab (عنصرية، حجاب)?"*
 
 ## Notes
 
-- Every plan receives all 98 fields and every endpoint (API v8): there is no
+- Every plan receives all 97 fields and every endpoint (API v8): there is no
   plan gating on fields or tools. Plans differ by monthly API-call allowance
   (Free 5,000 / Starter 500,000 / Business 5,000,000), results per request
   (20 / 50 / 100 / 500) and search radius; requests per second are fair-use

@@ -7,8 +7,9 @@ account). Read fully before editing; it encodes decisions already made.
 ## What this repo is
 
 The official **Model Context Protocol server** for the Location Drive API
-(global POI database: 350M+ places, graded A–E building polygons, brand
-intelligence, premium data packs). One codebase, two deployment modes:
+(global POI database: 307.8M places across 250 countries and territories,
+254.2M A–E graded building polygons, brand intelligence, premium data packs).
+One codebase, two deployment modes:
 
 1. **Local stdio** — published to npm as **`@locationdrive/mcp`**
    (bin: `locationdrive-mcp` → `dist/stdio.js`), run via
@@ -154,10 +155,16 @@ country-wide review search).
   allowances Free 5k / Starter 500k / Business 5M per month; max results per
   request 20 / 50 / 100 / 500. Single-call tools pass bodies through; `ldList()`
   and `scan_reviews` sum `api_calls_counted` (`countedCalls()` in api.ts). All
-  plans receive all 98 fields (47 Core · 16 Advanced · 20 Premium · 15 added in
-  v8; the website's `scripts/check_api.py` is the regression test). v1.0.8 added
+  plans receive all 97 fields (46 Core · 16 Advanced · 20 Premium · 15 added in
+  v8; the website's `scripts/check_api.py` is the regression test). `scraped_at`
+  is hidden on every plan since POI Lambda v10.9 (never selectable, stripped from
+  every body) — never list it; the per-country `last_scraped` in `/v1/countries`
+  is a separate aggregate and stays. v1.0.8 added
   the counting notes; v1.0.10 moved list defaults to 20, added `max_results`,
-  `brand_locations`, the header fallback and the 10 s timeout.
+  `brand_locations`, the header fallback and the 10 s timeout. v1.0.11
+  (2026-09-26): 97 fields (scraped_at hidden), the audited figures in the
+  instructions, README, landing page and llms.txt, and the plan sentence no longer
+  calls the fair-use rps figures a rate limit.
 - There is **no cross-place search over review content** — review text
   (`reviews`, `historical_reviews`, `reviews/summary`) is per place. The
   "which places in <country> have reviews mentioning X" question is out of reach
@@ -185,9 +192,39 @@ country-wide review search).
   - 429 / `QUOTA_EXCEEDED` (the legacy `RATE_LIMITED` code is still mapped) →
     "monthly API-call allowance exceeded … the refused request was not counted"
   - 401 → invalid/missing key message.
-- Live-data caveat: the production dataset is still ramping (Anguilla-only as
-  of Aug 2026) — e.g. `brand_footprint("Starbucks")` legitimately returns 0.
+- Live data: since 2026-09-10 the full dataset (250 countries and territories,
+  307.8M rows) is loaded, indexed and live, so live responses are a valid check —
+  e.g. `brand_footprint("Starbucks")` returns 17,042 locations across 77 countries
+  (10,826 in the US). An empty result means no data for that query (or a
+  misspelled brand), not a dataset still loading.
   That is data coverage, not a bug.
+
+## Canonical figures (owner decision 2026-09-26 — audited, publish these)
+
+Computed from the production database, primary category only, so they are
+floors. The website repo's CLAUDE.md "Canonical product facts" table is the full
+truth; these are the figures this repo's public surfaces (README, landing page,
+`public/llms.txt`, `SERVER_INSTRUCTIONS`) may cite:
+
+- **307.8M places** (307,791,192) · **250** countries and territories (exactly
+  250) · **254.2M** building polygons (82.6% of places), graded A–E.
+- **20M+ restaurants** · **31M+ food & drink** places · **6.4M+ places to stay**
+  · **2.9M+ hotels** (1,018,974 with multi-site room rates) · **2,037,712**
+  places with structured menus · **589,878** EV charging stations with
+  connector-level detail · **1.8M** brand-linked locations.
+- Regional split: Asia 163.2M · Europe 54.3M · North America 36.2M · LatAm &
+  Caribbean 28.0M · Africa 12.8M · Middle East 9.9M · Oceania 2.9M.
+- Cadence: "5M+ records updated daily in our internal refresh; a full global
+  update of the entire dataset published monthly." Never claim daily deltas are
+  delivered to customers.
+- Availability: "built on AWS infrastructure designed for 99.99% availability";
+  a contractual SLA percentage exists only in Enterprise agreements.
+- Free positioning: "the full product, limited by volume."
+
+**Historical bugs to never reintroduce:** 350M+ POIs, 300M+ polygons, 120M+
+polygons, "250+ countries", 32M+ restaurants, 6M+ hotels, 3M+ hotels, "5M daily
+delta updates" as a customer-facing delivery promise, a contractual SLA on a
+self-serve tier.
 
 ## Build, test, release
 

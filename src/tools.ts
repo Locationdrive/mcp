@@ -47,10 +47,11 @@ function withDataNote(body: unknown, fields?: string) {
 
 /** Server-level usage guidance injected into client context. */
 export const SERVER_INSTRUCTIONS =
-  "Location Drive is a global POI database (350M+ places, graded building polygons). " +
+  "Location Drive is a global POI database: 307.8M places across 250 countries and territories, 254.2M A–E graded " +
+  "building polygons. The full dataset is live, so an empty result means no data for that query. " +
   "Call data_coverage first when unsure whether a country/region is covered. " +
   "Every plan receives the full field set and every endpoint — there is no plan gating on fields or tools; plans differ " +
-  "only by monthly API-call allowance, results per request, search radius and rate limit. " +
+  "only by monthly API-call allowance, results per request and search radius (requests per second are fair-use guidance). " +
   "Review text exists in the data: reviews (current crawl), historical_reviews (earlier crawls), and get_review_history " +
   "(both merged, de-duplicated). If those fields come back missing for a place, no review text was captured for that " +
   "place — say that, never that Location Drive has no review data. get_place_context returns a summary plus " +
@@ -58,8 +59,9 @@ export const SERVER_INSTRUCTIONS =
   "Review data is per place: there is no city- or country-wide search over review content. For 'which places near a point " +
   "have reviews mentioning X' use scan_reviews (scans up to 40 nearest places, one request each, returns matching snippets); " +
   "for one place use get_review_history. " +
-  "All plans receive all 98 fields. Usage is counted per place returned: list tools cost their limit (default 20); " +
-  "single-place and summary tools cost 1. Free keys: 5,000 API calls/month, 20 results per call. " +
+  "All plans receive all 97 fields. Usage is counted per place returned: list tools cost their limit (default 20); " +
+  "single-place and summary tools cost 1. Free keys get the full product, limited by volume: 5,000 API calls/month, " +
+  "20 results per call. " +
   "A list request is charged its limit whatever it returns, so never raise limit above 20 unless the user asks for more; " +
   "use max_results (≤ 1,000) to page automatically — the result's api_calls_counted is the summed cost. scan_reviews costs " +
   "the nearby search (its limit) plus 1 per scanned place. Every result includes api_calls_counted. " +
@@ -134,7 +136,7 @@ export function registerTools(server: McpServer, getKey: () => string) {
       title: "Get place details",
       description:
         "Full record for one place by its Location Drive ID (from a previous search). " +
-        "Optionally request specific fields — any of the 98 fields, including the premium packs, available on every plan: " +
+        "Optionally request specific fields — any of the 97 fields, including the premium packs, available on every plan: " +
         "menu_items (full menu: sections → items with structured prices), " +
         "hotel_details (room-rate offers from multiple booking sites, with links), hotel_price, hotel_class, " +
         "ev_connectors (per-connector type, power_kw, speed, plug_count) plus ev_connector_types, ev_network, " +
@@ -145,7 +147,7 @@ export function registerTools(server: McpServer, getKey: () => string) {
         "all fields, so the place simply has no data recorded for them. Cost: 1 API call.",
       inputSchema: {
         place_id: z.string().describe("Location Drive place ID, e.g. 'ld_3GB7KWu3lxlI'"),
-        fields: z.string().optional().describe("Comma-separated field list, or '*' for all 98 fields (default: the 36 core fields)"),
+        fields: z.string().optional().describe("Comma-separated field list, or '*' for all 97 fields (default: the 35 core fields)"),
       },
       annotations: READ_ONLY,
     },

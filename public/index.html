@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Location Drive MCP Server</title>
-<meta name="description" content="Official MCP server for the Location Drive API — connect Claude, Cursor, or any MCP client to 350M+ POIs, graded building polygons, and brand intelligence.">
+<meta name="description" content="Official MCP server for the Location Drive API — connect Claude, Cursor, or any MCP client to 307.8M places in 250 countries and territories, 254.2M graded building polygons, and brand intelligence.">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M24 6 L46 22 L24 38 L2 22 Z' fill='%230E7C86'/%3E%3Ccircle cx='24' cy='22' r='6.5' fill='%23FFFFFF'/%3E%3C/svg%3E">
 <style>
   :root{--ink:#0F172A;--panel:#1E293B;--line:#334155;--text:#E2E8F0;--muted:#94A3B8;--faint:#64748B;--signal:#2DE1E8;--deep:#0E7C86}
@@ -52,7 +52,7 @@
       <path d="M5 24 L24 33.5 L43 24 M5 33 L24 42.5 L43 33" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linejoin="miter"/>
     </svg>
     <h1>Location Drive MCP Server</h1>
-    <p class="tagline">Connect Claude, Cursor, or any MCP-compatible AI client to the global Location Drive POI database — 350M+ places, graded building polygons, brand intelligence, and premium data packs.</p>
+    <p class="tagline">Connect Claude, Cursor, or any MCP-compatible AI client to the global Location Drive POI database — 307.8M places across 250 countries and territories, 254.2M A–E graded building polygons, brand intelligence, and premium data packs.</p>
     <div class="pillrow">
       <span class="pill">Endpoint <b>mcp.locationdrive.com/mcp</b></span>
       <span class="pill">npm <b>@locationdrive/mcp</b></span>
@@ -100,7 +100,7 @@
     <div class="tool"><span class="badge">ALL PLANS</span><code>search_places</code><p>Search the global POI database by name or keyword — ranked by prominence for general terms, by similarity for specific names. Cost: limit per page (default 20); max_results auto-pages and sums the cost.</p></div>
     <div class="tool"><span class="badge">ALL PLANS</span><code>find_nearby</code><p>Distance-sorted places around a coordinate. Cost: limit per page (default 20); max_results auto-pages.</p></div>
     <div class="tool"><span class="badge">ALL PLANS</span><code>brand_locations</code><p>Every location of a brand — one country or global — with the total. Cost: limit per page (default 20); max_results auto-pages.</p></div>
-    <div class="tool"><span class="badge">ALL PLANS</span><code>get_place_details</code><p>Full record by ID; any of the 98 fields, premium packs (full menus, hotel rates, EV connectors, fuel, review text) included on every plan — with a data note when a place has none. Cost: 1.</p></div>
+    <div class="tool"><span class="badge">ALL PLANS</span><code>get_place_details</code><p>Full record by ID; any of the 97 fields, premium packs (full menus, hotel rates, EV connectors, fuel, review text) included on every plan — with a data note when a place has none. Cost: 1.</p></div>
     <div class="tool"><span class="badge">ALL PLANS</span><code>get_place_context</code><p>LLM-ready summary + structured record (sentiment keywords, not review text) for one place. Cost: 1.</p></div>
     <div class="tool"><span class="badge">ALL PLANS</span><code>get_review_history</code><p>Merged multi-year review text history, duplicates removed, plus sentiment summary. Cost: 1.</p></div>
     <div class="tool"><span class="badge">ALL PLANS</span><code>scan_reviews</code><p>Keyword scan of review text across up to 40 places near a point — matching snippets per place. Cost: the nearby search (its limit, default 20) + 1 per scanned place; results report api_calls_counted.</p></div>
@@ -124,7 +124,7 @@
 
   <div class="note" style="margin-bottom:12px"><b>Review text is per place:</b> <code style="color:var(--signal)">reviews</code>, <code style="color:var(--signal)">historical_reviews</code> and <code style="color:var(--signal)">get_review_history</code> return what reviewers wrote (every plan). There is no city- or country-wide search over review content — <code style="color:var(--signal)">scan_reviews</code> covers a neighborhood (up to 40 places per call).</div>
 
-  <div class="note" style="margin-bottom:12px"><b>Usage:</b> all plans receive all 98 fields. Usage is counted per place returned: list tools cost their limit (default 20); single-place and summary tools cost 1. Free keys: 5,000 API calls/month, 20 results per call. Every result carries <code style="color:var(--signal)">api_calls_counted</code>.</div>
+  <div class="note" style="margin-bottom:12px"><b>Usage:</b> all plans receive all 97 fields. Usage is counted per place returned: list tools cost their limit (default 20); single-place and summary tools cost 1. Free keys: 5,000 API calls/month, 20 results per call. Every result carries <code style="color:var(--signal)">api_calls_counted</code>.</div>
 
   <div class="note"><b>Test without quota:</b> <code style="color:var(--signal)">ld_test_</code> keys return synthetic data and never count against your plan — ideal for trying the integration before going live.</div>
 
