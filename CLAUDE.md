@@ -161,7 +161,10 @@ country-wide review search).
   every body) — never list it; the per-country `last_scraped` in `/v1/countries`
   is a separate aggregate and stays. v1.0.8 added
   the counting notes; v1.0.10 moved list defaults to 20, added `max_results`,
-  `brand_locations`, the header fallback and the 10 s timeout.
+  `brand_locations`, the header fallback and the 10 s timeout. v1.0.11
+  (2026-09-26): 97 fields (scraped_at hidden), the audited figures in the
+  instructions, README, landing page and llms.txt, and the plan sentence no longer
+  calls the fair-use rps figures a rate limit.
 - There is **no cross-place search over review content** — review text
   (`reviews`, `historical_reviews`, `reviews/summary`) is per place. The
   "which places in <country> have reviews mentioning X" question is out of reach

@@ -7,6 +7,9 @@ prices, full menus, multi-site hotel rates, multi-year review history) — using
 your own Location Drive API key, so your plan, quotas, and usage dashboard
 apply exactly as with direct API calls.
 
+The dataset: 307.8M places across 250 countries and territories, 254.2M A–E
+graded building polygons, 97 structured fields on every plan — Free included.
+
 ## Tools
 
 | Tool | What it does | Cost |
