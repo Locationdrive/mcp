@@ -155,8 +155,11 @@ country-wide review search).
   allowances Free 5k / Starter 500k / Business 5M per month; max results per
   request 20 / 50 / 100 / 500. Single-call tools pass bodies through; `ldList()`
   and `scan_reviews` sum `api_calls_counted` (`countedCalls()` in api.ts). All
-  plans receive all 98 fields (47 Core · 16 Advanced · 20 Premium · 15 added in
-  v8; the website's `scripts/check_api.py` is the regression test). v1.0.8 added
+  plans receive all 97 fields (46 Core · 16 Advanced · 20 Premium · 15 added in
+  v8; the website's `scripts/check_api.py` is the regression test). `scraped_at`
+  is hidden on every plan since POI Lambda v10.9 (never selectable, stripped from
+  every body) — never list it; the per-country `last_scraped` in `/v1/countries`
+  is a separate aggregate and stays. v1.0.8 added
   the counting notes; v1.0.10 moved list defaults to 20, added `max_results`,
   `brand_locations`, the header fallback and the 10 s timeout.
 - There is **no cross-place search over review content** — review text

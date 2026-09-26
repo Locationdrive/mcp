@@ -14,7 +14,7 @@ apply exactly as with direct API calls.
 | `search_places` | Search the global POI database by name/keyword — ranked by prominence for general terms, by similarity for specific names | `limit` per page (default 20); `max_results` auto-pages and sums the cost |
 | `find_nearby` | Distance-sorted places around a coordinate (adds `distance_m`) | `limit` per page (default 20); `max_results` auto-pages |
 | `brand_locations` | Every location of a brand — one country or global — with the total | `limit` per page (default 20); `max_results` auto-pages |
-| `get_place_details` | Full record by ID; request any of the 98 fields via `fields` — premium packs (menus, hotel rates, EV connectors, fuel, review text) included on every plan; `data_note` when a requested field has no data for that place | 1 |
+| `get_place_details` | Full record by ID; request any of the 97 fields via `fields` — premium packs (menus, hotel rates, EV connectors, fuel, review text) included on every plan; `data_note` when a requested field has no data for that place | 1 |
 | `get_place_context` | LLM-ready summary + structured data (sentiment keywords, not review text) for one place | 1 |
 | `get_review_history` | Merged multi-year review text history, duplicates removed, plus sentiment summary | 1 |
 | `scan_reviews` | Keyword scan of review text across up to 40 places near a point — matching snippets per place; neighborhood scale | the nearby search (its `limit`) + 1 per scanned place, reported as `api_calls_counted` |
@@ -24,7 +24,7 @@ apply exactly as with direct API calls.
 | `brand_footprint` | Store counts, open-now, coverage, avg rating for a brand | 1 (summary) |
 | `data_coverage` | Per-country POI counts and polygon coverage stats | 1 |
 
-All plans receive all 98 fields. Usage is counted per place returned: list
+All plans receive all 97 fields. Usage is counted per place returned: list
 tools cost their limit (default 20); single-place and summary tools cost 1.
 Free keys: 5,000 API calls/month, 20 results per call. A list request is
 charged its `limit` whatever it returns, so the list tools never send more
@@ -102,7 +102,7 @@ Ask your AI client things like:
 
 ## Notes
 
-- Every plan receives all 98 fields and every endpoint (API v8): there is no
+- Every plan receives all 97 fields and every endpoint (API v8): there is no
   plan gating on fields or tools. Plans differ by monthly API-call allowance
   (Free 5,000 / Starter 500,000 / Business 5,000,000), results per request
   (20 / 50 / 100 / 500) and search radius; requests per second are fair-use

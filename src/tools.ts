@@ -58,7 +58,7 @@ export const SERVER_INSTRUCTIONS =
   "Review data is per place: there is no city- or country-wide search over review content. For 'which places near a point " +
   "have reviews mentioning X' use scan_reviews (scans up to 40 nearest places, one request each, returns matching snippets); " +
   "for one place use get_review_history. " +
-  "All plans receive all 98 fields. Usage is counted per place returned: list tools cost their limit (default 20); " +
+  "All plans receive all 97 fields. Usage is counted per place returned: list tools cost their limit (default 20); " +
   "single-place and summary tools cost 1. Free keys: 5,000 API calls/month, 20 results per call. " +
   "A list request is charged its limit whatever it returns, so never raise limit above 20 unless the user asks for more; " +
   "use max_results (≤ 1,000) to page automatically — the result's api_calls_counted is the summed cost. scan_reviews costs " +
@@ -134,7 +134,7 @@ export function registerTools(server: McpServer, getKey: () => string) {
       title: "Get place details",
       description:
         "Full record for one place by its Location Drive ID (from a previous search). " +
-        "Optionally request specific fields — any of the 98 fields, including the premium packs, available on every plan: " +
+        "Optionally request specific fields — any of the 97 fields, including the premium packs, available on every plan: " +
         "menu_items (full menu: sections → items with structured prices), " +
         "hotel_details (room-rate offers from multiple booking sites, with links), hotel_price, hotel_class, " +
         "ev_connectors (per-connector type, power_kw, speed, plug_count) plus ev_connector_types, ev_network, " +
@@ -145,7 +145,7 @@ export function registerTools(server: McpServer, getKey: () => string) {
         "all fields, so the place simply has no data recorded for them. Cost: 1 API call.",
       inputSchema: {
         place_id: z.string().describe("Location Drive place ID, e.g. 'ld_3GB7KWu3lxlI'"),
-        fields: z.string().optional().describe("Comma-separated field list, or '*' for all 98 fields (default: the 36 core fields)"),
+        fields: z.string().optional().describe("Comma-separated field list, or '*' for all 97 fields (default: the 35 core fields)"),
       },
       annotations: READ_ONLY,
     },
