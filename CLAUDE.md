@@ -189,8 +189,11 @@ country-wide review search).
   - 429 / `QUOTA_EXCEEDED` (the legacy `RATE_LIMITED` code is still mapped) →
     "monthly API-call allowance exceeded … the refused request was not counted"
   - 401 → invalid/missing key message.
-- Live-data caveat: the production dataset is still ramping (Anguilla-only as
-  of Aug 2026) — e.g. `brand_footprint("Starbucks")` legitimately returns 0.
+- Live data: since 2026-09-10 the full dataset (250 countries and territories,
+  307.8M rows) is loaded, indexed and live, so live responses are a valid check —
+  e.g. `brand_footprint("Starbucks")` returns 17,042 locations across 77 countries
+  (10,826 in the US). An empty result means no data for that query (or a
+  misspelled brand), not a dataset still loading.
   That is data coverage, not a bug.
 
 ## Canonical figures (owner decision 2026-09-26 — audited, publish these)

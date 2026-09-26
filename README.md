@@ -91,11 +91,11 @@ claude mcp add --transport http locationdrive https://mcp.locationdrive.com/mcp 
 
 Ask your AI client things like:
 
-- *"What data coverage does Location Drive have for Anguilla?"*
+- *"What data coverage does Location Drive have for Japan?"*
 - *"Find restaurants within 1 km of 18.2170, -63.0578."*
 - *"Which building sits at 18.2168, -63.0581, and what's its accuracy grade?"*
 - *"How many Starbucks locations are there worldwide, by country?"*
-- *"List the Starbucks stores in Anguilla."*
+- *"List the Starbucks stores in the US."*
 - *"Compare room rates for this hotel across booking sites."*
 - *"How have this restaurant's reviews changed over the past few years?"*
 - *"Which cafés within 1.5 km of 30.0289, 31.4910 have reviews mentioning racism or hijab (عنصرية، حجاب)?"*
