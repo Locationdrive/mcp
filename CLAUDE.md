@@ -164,7 +164,11 @@ country-wide review search).
   `brand_locations`, the header fallback and the 10 s timeout. v1.0.11
   (2026-09-26): 97 fields (scraped_at hidden), the audited figures in the
   instructions, README, landing page and llms.txt, and the plan sentence no longer
-  calls the fair-use rps figures a rate limit.
+  calls the fair-use rps figures a rate limit. v1.0.11 is
+  published on npm (owner, 2026-09-26). v1.0.12 (2026-09-26, not yet published —
+  the owner runs `npm publish`): the usage sentence in `SERVER_INSTRUCTIONS`,
+  README, landing page and `public/llms.txt` reads "counted per place requested"
+  (owner decision), tool behavior unchanged.
 - There is **no cross-place search over review content** — review text
   (`reviews`, `historical_reviews`, `reviews/summary`) is per place. The
   "which places in <country> have reviews mentioning X" question is out of reach
@@ -192,6 +196,13 @@ country-wide review search).
   - 429 / `QUOTA_EXCEEDED` (the legacy `RATE_LIMITED` code is still mapped) →
     "monthly API-call allowance exceeded … the refused request was not counted"
   - 401 → invalid/missing key message.
+- POI Lambda v10.11 (deployed 2026-09-26; reference copy in the website repo's
+  `lambda/`) serves the public field `photo_dates` from the populated column
+  `photo_urls_dates` (`FIELD_SQL`), so `get_place_details(fields="photo_urls,photo_dates")`
+  returns capture dates paired with the photo URLs. Its code still contains a
+  dormant "per place returned" settlement path that is off in production (the
+  POI Lambda has no `SUPABASE_URL` / `SUPABASE_KEY`); the live counting rule is
+  the limit-based one above.
 - Live data: since 2026-09-10 the full dataset (250 countries and territories,
   307.8M rows) is loaded, indexed and live, so live responses are a valid check —
   e.g. `brand_footprint("Starbucks")` returns 17,042 locations across 77 countries
@@ -224,7 +235,25 @@ truth; these are the figures this repo's public surfaces (README, landing page,
 **Historical bugs to never reintroduce:** 350M+ POIs, 300M+ polygons, 120M+
 polygons, "250+ countries", 32M+ restaurants, 6M+ hotels, 3M+ hotels, "5M daily
 delta updates" as a customer-facing delivery promise, a contractual SLA on a
-self-serve tier.
+self-serve tier. Added with the 2026-09-26 owner decisions: Kafka / Pub/Sub
+streaming on any plan feature list (planned only), `place.*` webhook events,
+template testimonials, "SOC-ready", "The World's Most Complete Location Dataset",
+"counted per place returned" (the sentence is "counted per place **requested**"),
+and any per-country licence price.
+
+## Owner decisions — 2026-09-26 close-out (final)
+
+The full table lives in the website repo's CLAUDE.md. The rows that touch this
+repo: **counting sentence** — "counted per place requested" everywhere
+(`SERVER_INSTRUCTIONS`, README, landing page, `public/llms.txt`; done in 1.0.12);
+**streaming** — planned only, never listed as a plan feature; **bulk country
+datasets** — no public price ("Full country or multi-country datasets are
+available in bulk, with monthly updates — contact sales."); **webhooks** — beta,
+account events only (`quota.threshold`, `subscription.updated`, `api_key.created`,
+`api_key.revoked`), delivered by the website's Supabase edge function
+`webhook-dispatch`; there is no MCP tool for them and none is planned; **free-quota
+fix** — the Supabase usage rollup is applied, so a Free key's 5,000 API calls
+cover the whole month (the MCP needs no change: the API enforces it).
 
 ## Build, test, release
 

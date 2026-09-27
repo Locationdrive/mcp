@@ -59,7 +59,7 @@ export const SERVER_INSTRUCTIONS =
   "Review data is per place: there is no city- or country-wide search over review content. For 'which places near a point " +
   "have reviews mentioning X' use scan_reviews (scans up to 40 nearest places, one request each, returns matching snippets); " +
   "for one place use get_review_history. " +
-  "All plans receive all 97 fields. Usage is counted per place returned: list tools cost their limit (default 20); " +
+  "All plans receive all 97 fields. Usage is counted per place requested: list tools cost their limit (default 20); " +
   "single-place and summary tools cost 1. Free keys get the full product, limited by volume: 5,000 API calls/month, " +
   "20 results per call. " +
   "A list request is charged its limit whatever it returns, so never raise limit above 20 unless the user asks for more; " +

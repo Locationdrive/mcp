@@ -64,7 +64,7 @@ JSON-configured clients (Claude Desktop and similar):
 }
 ```
 
-## The 12 tools (server version 1.0.11)
+## The 12 tools (server version 1.0.12)
 
 Each tool wraps a documented REST endpoint of `https://api.locationdrive.com/v1`:
 
@@ -84,7 +84,7 @@ Each tool wraps a documented REST endpoint of `https://api.locationdrive.com/v1`
 ## Behavior, limits, and errors
 
 - Every tool is annotated read-only; there are no write tools.
-- All plans receive all 97 fields. Usage is counted per place returned: list tools cost their limit (default 20); single-place and summary tools cost 1. Free keys: 5,000 API calls/month, 20 results per call. A list request is charged its `limit` whatever the page returns (default 20, capped at the plan's results per request), so the list tools never send more than 20 unless the caller sets `limit`; `max_results` (≤ 1,000) pages automatically and the result's `api_calls_counted` is the summed cost. `scan_reviews` costs the nearby search plus 1 per scanned place. Every tool result includes `api_calls_counted` (from the response body, or the `X-API-Calls-Counted` header when the body lacks it). Plan allowances: Free 5,000 / Starter 500,000 / Business 5,000,000 API calls per month; max results per request Free 20 / Starter 50 / Business 100 / Enterprise 500. Rule and per-endpoint table: https://locationdrive.com/docs#api-call-counting
+- All plans receive all 97 fields. Usage is counted per place requested: list tools cost their limit (default 20); single-place and summary tools cost 1. Free keys: 5,000 API calls/month, 20 results per call. A list request is charged its `limit` whatever the page returns (default 20, capped at the plan's results per request), so the list tools never send more than 20 unless the caller sets `limit`; `max_results` (≤ 1,000) pages automatically and the result's `api_calls_counted` is the summed cost. `scan_reviews` costs the nearby search plus 1 per scanned place. Every tool result includes `api_calls_counted` (from the response body, or the `X-API-Calls-Counted` header when the body lacks it). Plan allowances: Free 5,000 / Starter 500,000 / Business 5,000,000 API calls per month; max results per request Free 20 / Starter 50 / Business 100 / Enterprise 500. Rule and per-endpoint table: https://locationdrive.com/docs#api-call-counting
 - Review text is per place. `reviews` (current crawl) and `historical_reviews` (earlier crawls) are fields on `get_place_details` (every plan); `get_review_history` returns both merged and de-duplicated. There is no city- or country-wide search over review content — `scan_reviews` covers a neighborhood (up to 40 places, one request each); beyond that, the question needs a backend review-search endpoint (roadmap).
 - Every plan receives all fields. When explicitly requested fields are missing, `get_place_details` adds a `data_note`: that place has no data recorded for them — never conclude that Location Drive has no review data in general.
 - List tools return compact records (a slim default field set) — fetch full records per ID with `get_place_details`. Results are compact single-line JSON for token economy.
