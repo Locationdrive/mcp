@@ -124,7 +124,7 @@
 
   <div class="note" style="margin-bottom:12px"><b>Review text is per place:</b> <code style="color:var(--signal)">reviews</code>, <code style="color:var(--signal)">historical_reviews</code> and <code style="color:var(--signal)">get_review_history</code> return what reviewers wrote (every plan). There is no city- or country-wide search over review content — <code style="color:var(--signal)">scan_reviews</code> covers a neighborhood (up to 40 places per call).</div>
 
-  <div class="note" style="margin-bottom:12px"><b>Usage:</b> all plans receive all 97 fields. Usage is counted per place returned: list tools cost their limit (default 20); single-place and summary tools cost 1. Free keys: 5,000 API calls/month, 20 results per call. Every result carries <code style="color:var(--signal)">api_calls_counted</code>.</div>
+  <div class="note" style="margin-bottom:12px"><b>Usage:</b> all plans receive all 97 fields. Usage is counted per place requested: list tools cost their limit (default 20); single-place and summary tools cost 1. Free keys: 5,000 API calls/month, 20 results per call. Every result carries <code style="color:var(--signal)">api_calls_counted</code>.</div>
 
   <div class="note"><b>Test without quota:</b> <code style="color:var(--signal)">ld_test_</code> keys return synthetic data and never count against your plan — ideal for trying the integration before going live.</div>
 

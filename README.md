@@ -27,7 +27,7 @@ graded building polygons, 97 structured fields on every plan — Free included.
 | `brand_footprint` | Store counts, open-now, coverage, avg rating for a brand | 1 (summary) |
 | `data_coverage` | Per-country POI counts and polygon coverage stats | 1 |
 
-All plans receive all 97 fields. Usage is counted per place returned: list
+All plans receive all 97 fields. Usage is counted per place requested: list
 tools cost their limit (default 20); single-place and summary tools cost 1.
 Free keys: 5,000 API calls/month, 20 results per call. A list request is
 charged its `limit` whatever it returns, so the list tools never send more
