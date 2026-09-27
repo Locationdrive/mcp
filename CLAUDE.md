@@ -94,9 +94,10 @@ tsconfig.api.json  noEmit typecheck covering api/** + src/**.
 - Hardening baseline (v1.0.7, from the Sept 2026 security audit): every upstream
   call has a timeout; raw non-JSON upstream bodies never reach the model;
   `scan_reviews` is bounded per review and capped at 10 places for `ld_test_`
-  keys; `api/mcp.ts` never leaks errors. Still open for the owner: operator-side
-  rate limiting of `/api/mcp` (audit finding H2) is a Vercel Firewall rule, not
-  code — in code the caller's plan limits remain the only backstop.
+  keys; `api/mcp.ts` never leaks errors. Operator-side rate limiting (audit finding
+  H2) is a Vercel Firewall rule, not code: the owner added one on 2026-09-27 — 600
+  requests / 60 s per IP → 429 — see "Vercel deployment" for the paths it must
+  match. In code the caller's plan limits remain the only backstop.
 - Only **documented** API endpoints (the 25 in the website docs — `GET
   /v1/autocomplete` became documented on 2026-09-19; it still has no MCP tool
   because per-keystroke type-ahead has no agent use). An undocumented path was
@@ -199,10 +200,12 @@ country-wide review search).
 - POI Lambda v10.11 (deployed 2026-09-26; reference copy in the website repo's
   `lambda/`) serves the public field `photo_dates` from the populated column
   `photo_urls_dates` (`FIELD_SQL`), so `get_place_details(fields="photo_urls,photo_dates")`
-  returns capture dates paired with the photo URLs. Its code still contains a
-  dormant "per place returned" settlement path that is off in production (the
-  POI Lambda has no `SUPABASE_URL` / `SUPABASE_KEY`); the live counting rule is
-  the limit-based one above.
+  returns capture dates paired with the photo URLs. **v10.12** (deployed by the
+  owner on 2026-09-27; the website's `check_api.py` passes on all plans) removed the
+  dormant settlement code that could have rewritten a request's count to the places
+  returned — counting is "per place requested" only, exactly as `SERVER_INSTRUCTIONS`,
+  the README and the tool descriptions say. `check_api.py` section C now proves it
+  (Starter key, `limit=50`, fewer places back, still counted 50).
 - Live data: since 2026-09-10 the full dataset (250 countries and territories,
   307.8M rows) is loaded, indexed and live, so live responses are a valid check —
   e.g. `brand_footprint("Starbucks")` returns 17,042 locations across 77 countries
@@ -239,7 +242,9 @@ self-serve tier. Added with the 2026-09-26 owner decisions: Kafka / Pub/Sub
 streaming on any plan feature list (planned only), `place.*` webhook events,
 template testimonials, "SOC-ready", "The World's Most Complete Location Dataset",
 "counted per place returned" (the sentence is "counted per place **requested**"),
-and any per-country licence price.
+and any per-country licence price. Added on 2026-09-27: customer logos without a
+real customer relationship, and compliance or certification badges ("GDPR
+Compliant", "CCPA Ready") — this repo's landing page and README carry neither.
 
 ## Owner decisions — 2026-09-26 close-out (final)
 
@@ -292,6 +297,14 @@ instructions, and the `isError` path.
   the function fails loudly instead of shipping static-only. Keep it.
 - DNS lives at **Hostinger**: `CNAME mcp → cname.vercel-dns.com`. Nameservers
   stay at Hostinger — never advise moving them.
+- **Firewall rule (owner, 2026-09-27):** 600 requests / 60 s per IP → 429. Vercel
+  runs the Firewall before the project's routing, so a rule's Request Path sees the
+  path as sent — before `vercel.json` rewrites `/mcp` → `/api/mcp`. Clients use the
+  documented `https://mcp.locationdrive.com/mcp`, and the function also answers at
+  `/api/mcp` directly, so the rule must match **both**: Request Path equals `/mcp`
+  OR equals `/api/mcp` (or "starts with" `/mcp` and `/api/`, which also covers
+  `/mcp/`). As first set up it matched `/api/mcp` only, which left every `/mcp`
+  request unlimited. The static landing page and `llms.txt` need no rule.
 - `public/index.html` must stay fully self-contained (inline CSS/JS, data-URI
   favicon, no CDNs).
 
