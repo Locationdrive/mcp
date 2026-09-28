@@ -217,7 +217,7 @@ export function registerTools(server: McpServer, getKey: () => string) {
         latitude: z.number().min(-90).max(90).describe("Latitude in decimal degrees (WGS84)"),
         longitude: z.number().min(-180).max(180).describe("Longitude in decimal degrees (WGS84)"),
         keywords: z.array(z.string().min(2).max(200)).min(1).max(30)
-          .describe("Terms to look for in review text, any language, e.g. ['racist','عنصرية','hijab','حجاب','محجبة']"),
+          .describe("Terms to look for in review text, any language, e.g. ['wifi','واي فاي','quiet','هادئ']"),
         radius_m: z.number().int().min(50).max(100000).optional().describe("Search radius in meters (default 1500)"),
         category: z.string().optional().describe("Category filter for the nearby search, e.g. 'Restaurant' or 'Cafe'"),
         limit: z.number().int().min(1).max(40).optional().describe("Max places to scan, nearest first (default 20, max 40)"),

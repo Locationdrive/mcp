@@ -165,11 +165,14 @@ country-wide review search).
   `brand_locations`, the header fallback and the 10 s timeout. v1.0.11
   (2026-09-26): 97 fields (scraped_at hidden), the audited figures in the
   instructions, README, landing page and llms.txt, and the plan sentence no longer
-  calls the fair-use rps figures a rate limit. v1.0.11 is
-  published on npm (owner, 2026-09-26). v1.0.12 (2026-09-26, not yet published —
-  the owner runs `npm publish`): the usage sentence in `SERVER_INSTRUCTIONS`,
-  README, landing page and `public/llms.txt` reads "counted per place requested"
-  (owner decision), tool behavior unchanged.
+  calls the fair-use rps figures a rate limit. v1.0.12 (2026-09-26, published on npm
+  by the owner): the usage sentence in `SERVER_INSTRUCTIONS`, README, landing page and
+  `public/llms.txt` reads "counted per place requested" (owner decision). v1.0.13
+  (2026-09-28, not yet published — the owner runs `npm publish`): the example prompt
+  about cafés whose reviews mention racism or hijab is removed from the README,
+  landing page and `public/llms.txt` (owner request), and the `scan_reviews`
+  keywords example (schema description and `llms.txt`) is now
+  `['wifi','واي فاي','quiet','هادئ']`; tool behavior unchanged.
 - There is **no cross-place search over review content** — review text
   (`reviews`, `historical_reviews`, `reviews/summary`) is per place. The
   "which places in <country> have reviews mentioning X" question is out of reach
@@ -245,6 +248,9 @@ template testimonials, "SOC-ready", "The World's Most Complete Location Dataset"
 and any per-country licence price. Added on 2026-09-27: customer logos without a
 real customer relationship, and compliance or certification badges ("GDPR
 Compliant", "CCPA Ready") — this repo's landing page and README carry neither.
+Added on 2026-09-28 (owner request): the removed review-scan example about racism
+and hijab, in any form (prompt or `scan_reviews` keywords) — keep example prompts and
+keyword examples neutral.
 
 ## Owner decisions — 2026-09-26 close-out (final)
 
