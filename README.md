@@ -101,7 +101,6 @@ Ask your AI client things like:
 - *"List the Starbucks stores in the US."*
 - *"Compare room rates for this hotel across booking sites."*
 - *"How have this restaurant's reviews changed over the past few years?"*
-- *"Which cafés within 1.5 km of 30.0289, 31.4910 have reviews mentioning racism or hijab (عنصرية، حجاب)?"*
 
 ## Notes
 
