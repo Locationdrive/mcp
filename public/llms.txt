@@ -109,10 +109,11 @@ Starter $99/mo (500,000 API calls, 50 results per request, 25 km radius) ·
 Business $399/mo (5,000,000 API calls, 100 results per request, 100 km radius,
 webhooks, team seats) · Enterprise custom (contractual uptime SLA). Full details and canonical pricing:
 https://locationdrive.com/pricing. The website's Data Explorer
-(https://locationdrive.com/data-explorer) builds and exports place lists without
-code — 1 place = 1 API call from the same allowance (Free 500 · Starter 25,000 ·
-Business 100,000 rows per export). It is a website feature: there is no MCP tool
-for it.
+(https://locationdrive.com/data-explorer, live since October 2026) builds and exports
+place lists without code — counts are free and need no account; exports cost
+1 place = 1 API call from the same allowance (Free 500 · Starter 25,000 ·
+Business 100,000 rows per export) as CSV, Excel or GeoJSON. It is a website
+feature: there is no MCP tool for it.
 
 ## Docs
 
