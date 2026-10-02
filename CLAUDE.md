@@ -225,10 +225,14 @@ truth; these are the figures this repo's public surfaces (README, landing page,
 
 - **307.8M places** (307,791,192) · **250** countries and territories (exactly
   250) · **254.2M** building polygons (82.6% of places), graded A–E.
-- **20M+ restaurants** · **31M+ food & drink** places · **6.4M+ places to stay**
-  · **2.9M+ hotels** (1,018,974 with multi-site room rates) · **2,037,712**
-  places with structured menus · **589,878** EV charging stations with
-  connector-level detail · **1.8M** brand-linked locations.
+- **20M+ restaurants** (20,301,990) · **30M+ food & drink** places (30,195,288;
+  cafés, coffee & tea 4,545,602 · bars & nightlife 2,371,335 · bakeries & desserts
+  2,976,361) · **5.8M+ places to stay** (5,893,528) · **2.6M+ hotels** (2,679,066;
+  1,018,974 with multi-site room rates) · **2,037,712** places with structured
+  menus · **589,878** EV charging stations with connector-level detail · **1.8M**
+  brand-linked locations. The category counts were recounted in the live database
+  after de-duplication on 2026-10-02 (owner decision); the September figures came
+  from raw files before duplicates were removed.
 - Regional split: Asia 163.2M · Europe 54.3M · North America 36.2M · LatAm &
   Caribbean 28.0M · Africa 12.8M · Middle East 9.9M · Oceania 2.9M.
 - Cadence: "5M+ records updated daily in our internal refresh; a full global
@@ -241,7 +245,9 @@ truth; these are the figures this repo's public surfaces (README, landing page,
 **Historical bugs to never reintroduce:** 350M+ POIs, 300M+ polygons, 120M+
 polygons, "250+ countries", 32M+ restaurants, 6M+ hotels, 3M+ hotels, "5M daily
 delta updates" as a customer-facing delivery promise, a contractual SLA on a
-self-serve tier. Added with the 2026-09-26 owner decisions: Kafka / Pub/Sub
+self-serve tier. Added on 2026-10-02 (the recount): 31M+ food & drink, 6.4M+ places
+to stay, 2.9M+ hotels, and the old exact counts 20,476,695 restaurants, 6,473,895
+places to stay and 2,976,737 hotels. Added with the 2026-09-26 owner decisions: Kafka / Pub/Sub
 streaming on any plan feature list (planned only), `place.*` webhook events,
 template testimonials, "SOC-ready", "The World's Most Complete Location Dataset",
 "counted per place returned" (the sentence is "counted per place **requested**"),
