@@ -332,8 +332,9 @@ When tools, endpoints, or connection config change, update **all** of:
 5. both `llms.txt` files — `public/llms.txt` here (mcp.locationdrive.com/llms.txt)
    and the website's `public/llms.txt` — each lists every tool and the count.
    Since 2026-09-30 this repo's `llms.txt` also mentions the website's Data Explorer
-   (the self-serve list builder at locationdrive.com/data-explorer, behind the
-   website's feature flag) as a website feature with **no MCP tool** — keep it that
+   (the self-serve list builder at locationdrive.com/data-explorer — public since
+   October 2026, when the website's feature flag went on after the owner's end-to-end
+   test) as a website feature with **no MCP tool** — keep it that
    way unless the owner asks for one (a write-free export tool would still be an
    owner decision, see Conventions).
 
